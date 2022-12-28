@@ -1,4 +1,4 @@
-MAX_COORD = 1*10**4
+MAX_COORD = 20
 MIN_COORD = 0
 
 
@@ -58,18 +58,49 @@ def get_row_coverage(row, sensor_position, radius):
     return start_x, end_x
 
 
+def merge_ranges(range, other_range):
+    range_start, range_end = range
+    other_range_start, other_range_end = other_range
+    if range_start <= other_range_start <= range_end + 1:
+        return range_start, other_range_end if other_range_end > range_end else range_end
+
+    return None
+
+
+def merge_coverage(row_coverage, sensor_coverage):
+    new_row_coverage = list(row_coverage)
+    insert_pos = -1
+
+    for i in range(len(row_coverage)):
+        if sensor_coverage[0] > row_coverage[i][0]:
+            insert_pos = i
+    new_row_coverage.insert(insert_pos+1, sensor_coverage)
+
+    i = 0
+    while i < len(new_row_coverage) - 1:
+        base_range, other_range = new_row_coverage[i], new_row_coverage[i+1]
+        merged_ranges = merge_ranges(base_range, other_range)
+        if merged_ranges:
+            new_row_coverage[i] = merged_ranges
+            new_row_coverage.pop(i+1)
+        else:
+            i += 1
+
+    return new_row_coverage
+
+
 def part2():
     sensor_positions = []
     radii = []
 
-    with open('dag 15/input.txt') as sensor_reports:
+    with open('dag 15/example_input.txt') as sensor_reports:
         for sensor_report in sensor_reports:
             sensor_position, beacon_position = get_positions(sensor_report)
             radius = get_manhattan_distance(sensor_position, beacon_position)
             sensor_positions.append(sensor_position)
             radii.append(radius)
 
-    total_coverage = [[0] * (MAX_COORD+1) for _ in range(MAX_COORD+1)]
+    total_coverage = {}
     for i in range(len(sensor_positions)):
         sensor_y = sensor_positions[i][1]
         radius = radii[i]
@@ -78,9 +109,12 @@ def part2():
                 row = sensor_y + direction * y_distance
                 if row < MIN_COORD or row > MAX_COORD:
                     break
-                sensor_coverage_start, sensor_coverage_end = get_row_coverage(row, sensor_positions[i], radius)
-                total_coverage[row][sensor_coverage_start:sensor_coverage_end+1] = [1] * (sensor_coverage_end-sensor_coverage_start+1)
+                row_coverage_from_sensor = get_row_coverage(
+                    row, sensor_positions[i], radius)
+                total_coverage[row] = merge_coverage(
+                    total_coverage.get(row, []), row_coverage_from_sensor)
     a = 2
-              
+
+
 if __name__ == '__main__':
     part2()
