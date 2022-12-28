@@ -1,7 +1,4 @@
-import multiprocessing
-import functools
-
-MAX_COORD = 4000000
+MAX_COORD = 1*10**4
 MIN_COORD = 0
 
 
@@ -52,20 +49,13 @@ def part1():
     print(len(covered_on_row))
 
 
-def get_row_coverage(row, sensor_positions, radii):
-    row_coverage = [0] * (MAX_COORD + 1)
-    for i in range(len(sensor_positions)):
-        sensor_x, sensor_y = sensor_positions[i]
-        radius = radii[i]
-        diff_y = abs(sensor_y - row)
-
-        if diff_y <= radius:
-            delta_x = abs(diff_y - radius)
-            start_x = max(sensor_x - delta_x, MIN_COORD)
-            end_x = min(sensor_x + delta_x, MAX_COORD)
-            row_coverage[start_x:end_x+1] = [1] * (end_x-start_x+1)
-
-    return row_coverage
+def get_row_coverage(row, sensor_position, radius):
+    sensor_x, sensor_y = sensor_position
+    diff_y = abs(sensor_y - row)
+    delta_x = abs(diff_y - radius)
+    start_x = max(sensor_x - delta_x, MIN_COORD)
+    end_x = min(sensor_x + delta_x, MAX_COORD)
+    return start_x, end_x
 
 
 def part2():
@@ -79,15 +69,18 @@ def part2():
             sensor_positions.append(sensor_position)
             radii.append(radius)
 
-    with multiprocessing.Pool(6) as pool:
-        func = functools.partial(
-            get_row_coverage, sensor_positions=sensor_positions, radii=radii)
-
-        results = pool.imap(func, range(MAX_COORD), MAX_COORD//10)
-        for r in results:
-            if r.count(0) > 0:
-                print('bl')
-
-
+    total_coverage = [[0] * (MAX_COORD+1) for _ in range(MAX_COORD+1)]
+    for i in range(len(sensor_positions)):
+        sensor_y = sensor_positions[i][1]
+        radius = radii[i]
+        for direction in [1, -1]:
+            for y_distance in range(radius):
+                row = sensor_y + direction * y_distance
+                if row < MIN_COORD or row > MAX_COORD:
+                    break
+                sensor_coverage_start, sensor_coverage_end = get_row_coverage(row, sensor_positions[i], radius)
+                total_coverage[row][sensor_coverage_start:sensor_coverage_end+1] = [1] * (sensor_coverage_end-sensor_coverage_start+1)
+    a = 2
+              
 if __name__ == '__main__':
     part2()
