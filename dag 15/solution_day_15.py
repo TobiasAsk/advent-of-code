@@ -1,4 +1,4 @@
-MAX_COORD = 20
+MAX_COORD = 4*10**6
 MIN_COORD = 0
 
 
@@ -93,27 +93,29 @@ def part2():
     sensor_positions = []
     radii = []
 
-    with open('dag 15/example_input.txt') as sensor_reports:
+    with open('dag 15/input.txt') as sensor_reports:
         for sensor_report in sensor_reports:
             sensor_position, beacon_position = get_positions(sensor_report)
             radius = get_manhattan_distance(sensor_position, beacon_position)
             sensor_positions.append(sensor_position)
             radii.append(radius)
 
-    total_coverage = {}
-    for i in range(len(sensor_positions)):
-        sensor_y = sensor_positions[i][1]
-        radius = radii[i]
-        for direction in [1, -1]:
-            for y_distance in range(radius):
-                row = sensor_y + direction * y_distance
-                if row < MIN_COORD or row > MAX_COORD:
-                    break
+    for row in range(MAX_COORD):
+        row_coverage = []
+
+        for i in range(len(sensor_positions)):
+            sensor_y = sensor_positions[i][1]
+            radius = radii[i]
+            if abs(sensor_y - row) <= radius:
                 row_coverage_from_sensor = get_row_coverage(
                     row, sensor_positions[i], radius)
-                total_coverage[row] = merge_coverage(
-                    total_coverage.get(row, []), row_coverage_from_sensor)
-    a = 2
+                row_coverage = merge_coverage(
+                    row_coverage, row_coverage_from_sensor)
+
+        if len(row_coverage) != 1:
+            x_pos = row_coverage[1][0] - 1
+            print(f'x={x_pos}, y={row}')
+            break
 
 
 if __name__ == '__main__':
