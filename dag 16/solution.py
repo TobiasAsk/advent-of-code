@@ -14,7 +14,6 @@ class Network:
             flow_rates: dict[str, int]):
         self.tunnels = tunnels
         self.flow_rates = flow_rates
-        self.calculate_distances()
 
     @cache
     def get_max_pressure(
