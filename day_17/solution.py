@@ -1,25 +1,5 @@
 import sys
 
-'''
-####
-
-.#.
-###
-.#.
-
-..#
-..#
-###
-
-#
-#
-#
-#
-
-##
-##
-'''
-
 
 ROCKS = [  # X, Y positions relative to bottom left corner. X is from left to right, Y from bottom to top
     [(0, 0), (1, 0), (2, 0), (3, 0)],
@@ -30,7 +10,7 @@ ROCKS = [  # X, Y positions relative to bottom left corner. X is from left to ri
 ]
 
 CHAMBER_WIDTH = 7
-TARGET_NUM_ROCKS = 2022
+TARGET_NUM_ROCKS = 100000
 ROCK_SPAWN_DELTA_X = 2
 ROCK_SPAWN_DELTA_Y = 4
 
@@ -57,13 +37,9 @@ def simulate(jet_pattern):
 
             lowest_rock_point = min(p[1] for p in next_rock_coordinates)
 
-            if lowest_rock_point <= tower_height:
-                tower_points = set(
-                    p for p in rock_tower if p[1] >= lowest_rock_point)
-                collision_with_tower = any(
-                    point in tower_points for point in next_rock_coordinates)
-            else:
-                collision_with_tower = False
+            collision_with_tower = (any(
+                point in rock_tower for point in next_rock_coordinates)
+                if lowest_rock_point <= tower_height else False)
 
             chamber_collision = any(
                 x < 0 or x >= CHAMBER_WIDTH for (x, _) in next_rock_coordinates)
