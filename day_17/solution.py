@@ -10,13 +10,23 @@ ROCKS = [  # X, Y positions relative to bottom left corner. X is from left to ri
 ]
 
 CHAMBER_WIDTH = 7
-TARGET_NUM_ROCKS = 100000
+TARGET_NUM_ROCKS = 1000000000000
 ROCK_SPAWN_DELTA_X = 2
 ROCK_SPAWN_DELTA_Y = 4
 
 
+def print_chamber(tower_height, tower):
+    for row in range(tower_height, max(tower_height-20, 0), -1):
+        row_visual = ('|' + ''.join('#' if (x, row)
+                      in tower else '.' for x in range(CHAMBER_WIDTH)) + '|')
+        print(row_visual)
+    print()
+
+
 def simulate(jet_pattern):
     jet_idx, num_rocks_at_rest, tower_height = 0, 0, 0
+    cyclic_count, prev_height, prev_num_rocks = 0, 0, 0
+    prev_rock_diff = 0
     rock_tower = set()
 
     while num_rocks_at_rest < TARGET_NUM_ROCKS:
@@ -25,6 +35,32 @@ def simulate(jet_pattern):
         falling = False
 
         while True:
+            # don't fully understand why this is the cycle indicator, but it works
+            if jet_idx == (num_rocks_at_rest % 5) and falling:
+                cyclic_count += 1
+                if cyclic_count % 4 == 0:  # from manual inspection
+                    height_diff = tower_height - prev_height
+                    prev_height = tower_height
+
+                    rock_diff = num_rocks_at_rest - prev_num_rocks
+                    prev_num_rocks = num_rocks_at_rest
+
+                    if prev_rock_diff == rock_diff:
+                        print('Rock pattern is stable, jumping ahead')
+                        num_required_cycles = (
+                            TARGET_NUM_ROCKS - num_rocks_at_rest) // rock_diff
+                        added_height = num_required_cycles * height_diff
+                        num_rocks_at_rest += num_required_cycles * rock_diff
+                        tower_height += added_height
+
+                        rock_coordinates = [(x, y+added_height)
+                                            for (x, y) in rock_coordinates]
+
+                        rock_tower = {(x, y+added_height)
+                                      for (x, y) in rock_tower}
+
+                    prev_rock_diff = rock_diff
+
             if falling:
                 next_rock_coordinates = [(x, y-1)
                                          for (x, y) in rock_coordinates]
