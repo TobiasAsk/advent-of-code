@@ -5,11 +5,24 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Full input",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "args": [
+                "${workspaceFolder}/${relativeFileDirname}/input.txt"
+            ],
+            "justMyCode": true
+        },
+        {
             "name": "Example input",
             "type": "python",
             "request": "launch",
             "program": "${file}",
-            "args": ["${workspaceFolder}/${relativeFileDirname}/example_input.txt"],
+            "args": [
+                "${workspaceFolder}/${relativeFileDirname}/example_input.txt"
+            ],
             "console": "integratedTerminal",
             "justMyCode": true
         }
