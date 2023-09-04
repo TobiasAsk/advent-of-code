@@ -41,12 +41,13 @@ def get_pockets(point, cubes, visited=set(), depth=0):
 def main():
     filename = sys.argv[1]
     num_exposed_sides = {}
-    potential_pockets = {}
+    potential_pockets = set()
 
     with open(filename) as point_file:
         for point_line in point_file:
             point = tuple(int(c) for c in point_line.split(','))
             num_exposed_sides[point] = 2*len(point)
+            potential_pockets.discard(point)
 
             for other_point in get_adjacent_points(point):
                 if other_point in num_exposed_sides:
@@ -54,8 +55,7 @@ def main():
                     num_exposed_sides[other_point] -= 1
 
                 else:
-                    potential_pockets[other_point] = (
-                        1 if other_point not in potential_pockets else potential_pockets[other_point] + 1)
+                    potential_pockets.add(other_point)
 
     all_pockets = []
     for pot_pocket in potential_pockets:
