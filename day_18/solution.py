@@ -1,76 +1,67 @@
 import sys
 
-DIRECTIONS = [
-    (1, 0),  # right
-    (-1, 0),  # left
-    (0, -1),  # up
-    (0, 1)   # down
+DIRECTIONS_2D = [
+    (1, 0),
+    (-1, 0),
+    (0, 1),
+    (0, -1)
 ]
 
-MAX_DEPTH = 10
 
-
-def get_adjacent_points(point):
-    num_dims = len(point)
-    for axis in range(num_dims):
-        for direction in [-1, 1]:
-            yield tuple(
-                point[i] + direction if i == axis else point[i] for i in range(num_dims))
-
-
-def get_pockets(point, cubes, visited=set(), depth=0):
-    if depth == MAX_DEPTH:
-        return None
-
-    pockets = [point]
+def get_adjacent_points_2d(point):
     x, y = point
 
-    for direction in DIRECTIONS:
+    for direction in DIRECTIONS_2D:
         delta_x, delta_y = direction
-        new_position = (x+delta_x, y+delta_y)
-        if new_position not in cubes and new_position not in visited:
-            res = get_pockets(new_position, cubes, visited | {point}, depth+1)
-            if res:
-                pockets.extend(res)
-            else:
-                return None
+        yield (x+delta_x, y+delta_y)
 
-    return pockets
+
+def within_bounds(point, bounds):
+    x, y = point
+    min_x, min_y, max_x, max_y = bounds
+    return min_x <= x < max_x and min_y <= y < max_y
+
+
+def flood_fill_iterative(point, cubes, bounds):
+    q = [point]
+    visited = set()
+    count = 0
+    
+    while q:
+        p = q.pop()
+        if p not in visited:
+            visited.add(p)
+
+            for other_point in get_adjacent_points_2d(p):
+                if other_point in cubes:
+                    count += 1
+
+                elif within_bounds(other_point, bounds) and (other_point not in visited):
+                    q.append(other_point)
+
+    return count
 
 
 def main():
     filename = sys.argv[1]
-    num_exposed_sides = {}
-    potential_pockets = set()
+    cubes = set()
+    min_x, min_y, max_x, max_y = 100, 100, -100, -100
 
-    with open(filename) as point_file:
-        for point_line in point_file:
-            point = tuple(int(c) for c in point_line.split(','))
-            num_exposed_sides[point] = 2*len(point)
-            potential_pockets.discard(point)
+    with open(filename) as cube_file:
+        for cube_line in cube_file:
+            cube = tuple(int(c) for c in cube_line.split(','))
+            cubes.add(cube)
+            min_x = min(min_x, cube[0])
+            max_x = max(max_x, cube[0])
 
-            for other_point in get_adjacent_points(point):
-                if other_point in num_exposed_sides:
-                    num_exposed_sides[point] -= 1
-                    num_exposed_sides[other_point] -= 1
+            min_y = min(min_y, cube[1])
+            max_y = max(max_y, cube[1])
 
-                else:
-                    potential_pockets.add(other_point)
+    start_point = (min_x-1, min_y-1)
+    bounds = (min_x-2, min_y-2, max_x+2, max_y+2)
 
-    all_pockets = []
-    for pot_pocket in potential_pockets:
-        if pot_pocket not in all_pockets:
-            pockets = get_pockets(pot_pocket, num_exposed_sides.keys())
-            if pockets:
-                all_pockets.extend(pockets)
-
-    for pocket in all_pockets:
-        for point in get_adjacent_points(pocket):
-            if point in num_exposed_sides and num_exposed_sides[point] > 0:
-                num_exposed_sides[point] -= 1
-
-    total_surface_area = sum(n for n in num_exposed_sides.values())
-    print(f'Total surface area is {total_surface_area}')
+    num_exposed_sides = flood_fill_iterative(start_point, cubes, bounds)
+    print(f'Total surface area is {num_exposed_sides}')
 
 
 if __name__ == '__main__':
