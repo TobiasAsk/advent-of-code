@@ -1,56 +1,46 @@
 import sys
 import re
-from enum import Enum
 from functools import cache
 
 BLUEPRINT_REGEX = re.compile(r'(\d+)')
 
 
-class Resource(Enum):
-    ORE = 1
-    CLAY = 2
-    OBSIDIAN = 3
-    GEODE = 4
-
-
+@cache
 def get_max_num_geodes(
-        costs: dict[Resource, dict[Resource, int]],
-        resources: dict[Resource, int],
-        robots: dict[Resource, int],
+        costs: tuple[tuple[int]],
+        resources: tuple[int],
+        robots: tuple[int],
         remaining_minutes: int) -> int:
 
     if remaining_minutes == 0:
-        return resources[Resource.GEODE]
+        return resources[3]
 
     # need something better than a "greedy, always build" strategy since it will just build clay-collecting robots
     build_options = []
-    for robot_type, robot_cost in costs.items():
+    for robot_type, robot_cost in enumerate(costs):
         if all(resources[resource] >= cost
-               for resource, cost in robot_cost.items()):
+               for resource, cost in enumerate(robot_cost)):
 
-            resources_after_build = {
-                r: resources[r]-robot_cost.get(r, 0) for r in resources}
+            a = 2
 
-            robots_after_build = {
-                r: robots[r]+1 if r == robot_type else robots[r] for r in robots}
+            resources_after_build = tuple(
+                resources[r]-robot_cost[r]+robots[r] for r in range(len(resources)))
 
-            num_geodes = get_max_num_geodes(
-                costs=costs,
-                resources=resources_after_build,
-                robots=robots_after_build,
-                remaining_minutes=remaining_minutes-1
-            )
-            build_options.append(num_geodes)
+            robots_after_build = tuple(
+                robots[r]+1 if r == robot_type else robots[r] for r in range(len(robots)))
 
-    resources_no_build = {r: resources[r]+robots[r] for r in robots}
-    num_geodes_no_build = get_max_num_geodes(
+            build_options.append((resources_after_build, robots_after_build))
+
+    resources_no_build = tuple(resources[r]+robots[r]
+                               for r in range(len(robots)))
+    build_options.append((resources_no_build, robots))
+
+    return max([get_max_num_geodes(
         costs=costs,
-        resources=resources_no_build,
-        robots=robots,
-        remaining_minutes=remaining_minutes-1
-    )
+        resources=res,
+        robots=rob,
+        remaining_minutes=remaining_minutes-1) for res, rob in build_options])
 
-    return max(build_options + [num_geodes_no_build])
 
 def main():
     filename = sys.argv[1]
@@ -59,42 +49,25 @@ def main():
         for line in blueprint_file:
             costs = [int(c) for c in BLUEPRINT_REGEX.findall(line)]
 
-            costs = {
-                Resource.ORE: {
-                    Resource.ORE: costs[1]
-                },
-                Resource.CLAY: {
-                    Resource.ORE: costs[2]
-                },
-                Resource.OBSIDIAN: {
-                    Resource.ORE: costs[3],
-                    Resource.CLAY: costs[4]
-                },
-                Resource.GEODE: {
-                    Resource.ORE: costs[5],
-                    Resource.OBSIDIAN: costs[6]
-                }
-            }
+            costs = (
+                # (ore, clay, obsidian, geode)
+                (costs[1], 0, 0, 0),  # ore robot
+                (costs[2], 0, 0, 0),  # clay robot
+                (costs[3], costs[4], 0, 0),  # obsidian robot
+                (costs[5], 0, costs[6], 0)  # geode robot
+            )
 
-            starting_resources = {
-                Resource.ORE: 0,
-                Resource.CLAY: 0,
-                Resource.OBSIDIAN: 0,
-                Resource.GEODE: 0
-            }
+            starting_resources = (0, 0, 0, 0)  # (ore, clay, obsidian, geode)
 
-            robots = {
-                Resource.ORE: 1,
-                Resource.CLAY: 0,
-                Resource.OBSIDIAN: 0,
-                Resource.GEODE: 0
-            }
+            robots = (1, 0, 0, 0)
 
             max_num_geodes = get_max_num_geodes(
                 costs=costs,
                 resources=starting_resources,
                 robots=robots,
                 remaining_minutes=24)
+
+            a = 2
 
 
 if __name__ == '__main__':
