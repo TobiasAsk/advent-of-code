@@ -22,9 +22,8 @@ def get_max_num_geodes(
     if remaining_minutes == 0:
         return resources[Resource.GEODE]
 
-    resources_no_build = {r: resources[r]+robots[r] for r in robots}
-    
-    options = []
+    # need something better than a "greedy, always build" strategy since it will just build clay-collecting robots
+    build_options = []
     for robot_type, robot_cost in costs.items():
         if all(resources[resource] >= cost
                for resource, cost in robot_cost.items()):
@@ -32,27 +31,26 @@ def get_max_num_geodes(
             resources_after_build = {
                 r: resources[r]-robot_cost.get(r, 0) for r in resources}
 
-            robots_afer_build = {
+            robots_after_build = {
                 r: robots[r]+1 if r == robot_type else robots[r] for r in robots}
 
             num_geodes = get_max_num_geodes(
                 costs=costs,
                 resources=resources_after_build,
-                robots=robots_afer_build,
+                robots=robots_after_build,
                 remaining_minutes=remaining_minutes-1
             )
+            build_options.append(num_geodes)
 
-            options.append(num_geodes)
-
-
-    no_build_option = get_max_num_geodes(
+    resources_no_build = {r: resources[r]+robots[r] for r in robots}
+    num_geodes_no_build = get_max_num_geodes(
         costs=costs,
         resources=resources_no_build,
         robots=robots,
-        remaining_minutes=remaining_minutes-1)
+        remaining_minutes=remaining_minutes-1
+    )
 
-    return max(options + [no_build_option])
-
+    return max(build_options + [num_geodes_no_build])
 
 def main():
     filename = sys.argv[1]
