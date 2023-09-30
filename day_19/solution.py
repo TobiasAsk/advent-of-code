@@ -15,11 +15,12 @@ def get_max_num_geodes(
     if remaining_minutes == 0:
         return resources[3]
 
-    # need something better than a "greedy, always build" strategy since it will just build clay-collecting robots
-    build_option = None
+    resources_no_build = tuple(resources[r]+robots[r]
+                               for r in range(len(robots)))
+    build_options = [(resources_no_build, robots)]
     for robot_type, robot_cost in enumerate(costs):
-        if all(resources[resource] >= cost
-               for resource, cost in enumerate(robot_cost)):
+        if all(resources[r] >= robot_cost[r]
+               for r in range(len(resources))):
 
             resources_after_build = tuple(
                 resources[r]-robot_cost[r]+robots[r] for r in range(len(resources)))
@@ -27,13 +28,7 @@ def get_max_num_geodes(
             robots_after_build = tuple(
                 robots[r]+1 if r == robot_type else robots[r] for r in range(len(robots)))
 
-            build_option = resources_after_build, robots_after_build
-
-    resources_no_build = tuple(resources[r]+robots[r]
-                               for r in range(len(robots)))
-
-    build_options = [(resources_no_build, robots), build_option] if build_option else [
-        (resources_no_build, robots)]
+            build_options.append((resources_after_build, robots_after_build))
 
     return max([get_max_num_geodes(
         costs=costs,
