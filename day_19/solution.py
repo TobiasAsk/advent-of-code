@@ -17,16 +17,13 @@ class Blueprint:
             robots: tuple[int],
             remaining_minutes: int) -> int:
 
-        if remaining_minutes == 0:
-            return resources[3]
-
         current = resources[3] + (robots[3]*remaining_minutes)
         if remaining_minutes == 1:
             return current
 
         if current < self.best.get(remaining_minutes, 0):
             return 0
-        
+
         self.best[remaining_minutes] = current
 
         options = []
@@ -68,9 +65,10 @@ class Blueprint:
 
 def main():
     filename = sys.argv[1]
+    max_geode_product = 1
 
     with open(filename) as blueprint_file:
-        for line in blueprint_file:
+        for line in blueprint_file.readlines()[:3]:
             costs = [int(c) for c in BLUEPRINT_REGEX.findall(line)]
 
             costs = (
@@ -90,9 +88,11 @@ def main():
             max_num_geodes = blueprint.get_max_num_geodes(
                 resources=starting_resources,
                 robots=robots,
-                remaining_minutes=24)
+                remaining_minutes=32)
 
-            a = 2
+            max_geode_product *= max_num_geodes
+
+    print(f'Level product is {max_geode_product}')
 
 
 if __name__ == '__main__':
