@@ -28,34 +28,28 @@ class Blueprint:
 
         options = []
         for robot_type, robot_cost in enumerate(self.costs):
+            required_wait_time = 0
+
             # can we build this robot right now?
             if all(resources[r] >= robot_cost[r] for r in range(len(resources))):
-                resources_after_build = tuple(
-                    resources[r]-robot_cost[r]+robots[r] for r in range(len(resources)))
+                required_wait_time = 1
 
-                robots_after_build = tuple(
-                    robots[r]+1 if r == robot_type else robots[r] for r in range(len(robots)))
-
-                options.append((resources_after_build, robots_after_build, 1))
-
-            # can we save up for it?
+            # or can we save up for it?
             elif all(robots[r] > 0 for r in range(len(resources)) if robot_cost[r] > 0):
-                required_wait_time = 0
-
                 for r in range(len(resources)):
                     wait_time = math.ceil(
                         (robot_cost[r] - resources[r]) / robots[r]) + 1 if robots[r] > 0 else 0
                     required_wait_time = max(required_wait_time, wait_time)
 
-                if remaining_minutes - required_wait_time > 0:
-                    resources_after_build = tuple(
-                        resources[r]-robot_cost[r]+robots[r]*required_wait_time for r in range(len(resources)))
+            if required_wait_time > 0 and remaining_minutes - required_wait_time > 0:
+                resources_after_build = tuple(
+                    resources[r]-robot_cost[r]+robots[r]*required_wait_time for r in range(len(resources)))
 
-                    robots_after_build = tuple(
-                        robots[r]+1 if r == robot_type else robots[r] for r in range(len(robots)))
+                robots_after_build = tuple(
+                    robots[r]+1 if r == robot_type else robots[r] for r in range(len(robots)))
 
-                    options.append(
-                        (resources_after_build, robots_after_build, required_wait_time))
+                options.append(
+                    (resources_after_build, robots_after_build, required_wait_time))
 
         return max([self.get_max_num_geodes(
             resources=res,
