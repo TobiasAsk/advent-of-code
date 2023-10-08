@@ -82,3 +82,49 @@ Move the "second" one step
 ===================================
 Move the -3s
 [1, 1, 1, 1, 1, -3, 1, 1, -3]
+
+
+==============
+Assume that you shouldn't move all occurences at one. Rather, keep track of all shifts.
+
+So [3, 5, 8, 4, 3]. Initial order: 
+
+1. The 3 at 0
+2. The 5 at 1
+3. The 8 at 2
+4. The 4 at 3
+5. The 3 at 4
+Plan for indices: [0, 1, 2, 3, 4]
+
+=== Moving 3 at 0 ===
+[5, 8, 4, 3, 3]
+Inserted at 3.
+Remaining plan before insert: [1, 2, 3, 4]
+Plan after insert: [0, 1, 2, 4]
+1. 5 at 0
+2. 8 at 1
+3. 4 at 2
+4. 3 at 4
+So everything up to and including insertion index gets shifted -1 when moving something forwards.
+
+=== Moving 5 at 0 ===
+[8, 5, 4, 3, 3],
+Inserted at 1.
+Remaining plan before insert: [1, 2, 4]
+Plan after insert: [0, 2, 4]
+
+=== Moving 8 at 0 ===
+[8, 5, 4, 3, 3]
+Inserted at 0.
+Remaining plan before insert: [2, 4]
+Plan after insert: [2, 4]
+
+=== Moving 4 at 2 ===
+[8, 5, 4, 3, 3]
+Inserted at 2.
+Remaining plan before insert: [4]
+Plan after insert: [4]
+
+=== Moving 3 at 4 ===
+[8, 5, 4, 3, 3]
+Done.

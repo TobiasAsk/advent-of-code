@@ -1,29 +1,19 @@
 import sys
+import collections
 
 
-def move(number: int, numbers: list):
-    number_indices = [i for i in range(len(numbers)) if numbers[i] == number]
-    num_steps = number
-    indices = list(reversed(number_indices)
-                   ) if num_steps > 0 else list(number_indices)
+def move(idx: int, numbers: list):
+    num_steps = numbers[idx]
+    new_idx = (idx + num_steps) % (len(numbers)-1)
 
-    for i in range(len(indices)):
-        number_idx = indices[i]
-        new_idx = (number_idx + num_steps) % (len(numbers)-1)
+    if num_steps < 0 and new_idx == 0:
+        new_idx = len(numbers)
+    elif num_steps > 0 and new_idx == len(numbers)-1:
+        new_idx = 0
 
-        if num_steps < 0 and new_idx == 0:
-            new_idx = len(numbers)
-        elif num_steps > 0 and new_idx == len(numbers)-1:
-            new_idx = 0
-
-        popped = numbers.pop(number_idx)
-        numbers.insert(new_idx, popped)
-
-        for j in range(i+1, len(indices)):
-            if indices[j] > new_idx and number_idx > indices[j]:
-                indices[j] += 1
-            elif indices[j] < new_idx and number_idx < indices[j]:
-                indices[j] -= 1
+    popped = numbers.pop(idx)
+    numbers.insert(new_idx, popped)
+    return new_idx
 
 
 def main():
@@ -45,6 +35,17 @@ def test(number: int, nums: list, expected: list):
     move(number, nums)
     assert nums == expected, f'Expected {expected}, got {nums}'
 
+
+def test2():
+    nums = [3, 5, 8, 4, 3]
+    q = collections.deque(range(len(nums)))
+    while q:
+        idx = q.popleft()
+        new_idx = move(idx, nums)
+        for i in range(len(q)):
+            if q[i] <= new_idx:
+                q[i] -= 1
+    print(nums)
 
 if __name__ == '__main__':
     test_cases = [
@@ -74,8 +75,10 @@ if __name__ == '__main__':
          [1, 1, 1, 1, -3, 1, 1, 1, 1, 1, -3, 1]),
     ]
 
-    for elem, nums, expected in test_cases:
-        test(elem, nums, expected)
-    print('Tests pass')
+    # for elem, nums, expected in test_cases:
+    #     test(elem, nums, expected)
 
-    main()
+    test2()
+    # print('Tests pass')
+
+    # main()
