@@ -3,12 +3,12 @@ import sys
 
 def move(elem_idx: int, num_moves: int, elements: list):
     new_idx = (elem_idx + num_moves) % (len(elements)-1)
-    
+
     if num_moves < 0 and new_idx == 0:
         new_idx = len(elements)
     elif num_moves > 0 and new_idx == len(elements)-1:
         new_idx = 0
-    
+
     elem = elements.pop(elem_idx)
     elements.insert(new_idx, elem)
 
@@ -25,10 +25,8 @@ def main():
         move(elem_idx=number_idx, num_moves=number, elements=numbers)
 
     start_idx = numbers.index(0)
-    coordinate_sum = 0
-    for i in range(1000, 3001, 1000):
-        idx = (start_idx + i) % len(numbers)
-        coordinate_sum += numbers[idx]
+    coordinate_sum = sum(numbers[(start_idx+offset) % len(numbers)]
+                         for offset in [1000, 2000, 3000])
     print(f'Coordinate sum is {coordinate_sum}')
 
 
