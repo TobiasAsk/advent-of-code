@@ -2,18 +2,15 @@ import sys
 
 
 def move(elem_idx: int, num_moves: int, elements: list):
-    i = elem_idx
-    for _ in range(abs(num_moves)):
-
-        if (num_moves < 0 and i > 1) or (num_moves > 0 and i < len(elements)-2):
-            next_idx = i+1 if num_moves > 0 else i-1
-            elements[i], elements[next_idx] = elements[next_idx], elements[i]
-            i += 1 if num_moves > 0 else -1
-
-        else:
-            elem = elements.pop(i)
-            i = len(elements) if num_moves < 0 else 0
-            elements.insert(i, elem)
+    new_idx = (elem_idx + num_moves) % (len(elements)-1)
+    
+    if num_moves < 0 and new_idx == 0:
+        new_idx = len(elements)
+    elif num_moves > 0 and new_idx == len(elements)-1:
+        new_idx = 0
+    
+    elem = elements.pop(elem_idx)
+    elements.insert(new_idx, elem)
 
 
 def main():
