@@ -128,3 +128,33 @@ Plan after insert: [4]
 === Moving 3 at 4 ===
 [8, 5, 4, 3, 3]
 Done.
+
+
+Backwards?
+
+[3, 1, -2, 2, 4]
+Plan [0, 1, 2, 3, 4]
+
+== Moving 3 at 0 ==
+[1, -2, 2, 3, 4]
+New idx 3.
+Plan [0, 1, 2, 4]
+
+== Moving 1 at 0 ==
+[-2, 1, 2, 3, 4]
+New idx 1
+Plan [0, 2, 4]
+
+== Moving -2 at 0 ==
+[1, 2, -2, 3, 4]
+New idx 2
+Index queue [1, 4]
+
+== Moving 2 at 1 ==
+[1, -2, 3, 2, 4]
+New idx 3
+Index queue [4]
+
+== Moving 4 at 4 ==
+[4, 1, -2, 3, 2]
+Done
