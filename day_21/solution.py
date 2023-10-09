@@ -16,6 +16,24 @@ def do_job(job: str, jobs: dict):
         return do_job(jobs[first_monkey_name], jobs) // do_job(jobs[second_monkey_name], jobs)
 
 
+def expand_in_postfix(expression: str, jobs: dict):
+    lhs, _, rhs = expression.split()
+    expr = [lhs, rhs, '=']
+    while True:
+        new_symbols = []
+        for symbol in expr:
+            expanded = jobs.get(symbol, symbol)
+            parts = expanded.split()
+            if len(parts) > 1:
+                operand, operator, other_operand = parts
+                new_symbols.extend([operand, other_operand, operator])
+            else:
+                new_symbols.append(expanded)
+        if new_symbols == expr:
+            break
+        expr = list(new_symbols)
+    return str.join(' ', expr)
+
 def main():
     filename = sys.argv[1]
     jobs = {}
@@ -29,12 +47,17 @@ def main():
 
 def test():
     jobs = {
-        'f': '5',
-        'g': '3'
+        'root': 'a = b',
+        'a': 'c * d',
+        'b': '3',
+        'c': '2',
+        'd': 'e + f',
+        'e': '1',
+        'f': '1'
     }
-    result = do_job('f + g', jobs)
-    print(f'Result is {result}')
-
+    postfix = expand_in_postfix(jobs['root'], jobs)
+    a = 3
 
 if __name__ == '__main__':
+    test()
     main()

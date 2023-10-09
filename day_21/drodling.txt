@@ -1,0 +1,72 @@
+humn - dvpt = ptdq
+
+humn = lgvd / ljgn + 3
+humn = lgvd / 2 + 3
+humn = (cczh-sllz)/2 + 3
+humn = (pppw*lfqf-4)/2 + 3
+humn = (pppw*4-4)/2 + 3
+humn = (drzm*dbpl*4-4)/2 + 3
+humn = ((hmdt-zczc)*5*4-4)/2 + 3
+humn = ((32-2)*5*4-4)/2 + 3
+humn = (30*5*4-4)/2 + 3
+
+
+what if you resolve pppw directly instead of resolving it to sjmn?
+humn = lgvd / ljgn + 3
+humn = lgvd / 2 + 3
+humn = (cczh-sllz)/2 + 3
+humn = (pppw*lfqf-4)/2 + 3
+humn = (pppw*4-4)/2 + 3
+humn = (cczh/lfqf*4-4)/2 + 3
+humn = (cczh-4)/2 + 3
+humn = (sllz + lgvd-4)/2 + 3
+
+Perhaps you need to dig down to humn
+pppw = sjmn
+cczh / lfqf = drzm * dbpl
+(sllz + lgvd) / 4 = (hmdt - zczc) * 5
+(4 + ljgn * ptdq) / 4 = (32 - 2) * 5
+(4 + 2 * (humn - dvpt)) / 4 = 150
+(4 + 2 * (humn - 3)) / 4 = 150
+
+
+(4 + 2 * (humn - 3)) / 4 = 150
+
+1. expand inner
+(4 + 2 * humn - 6) / 4 = 150
+
+2. inverse of / 4:
+4 + 2 * (humn - 3) = 600
+
+3. inverse of additions and subtractions
+2 * humn = 602
+
+4. inverse of 2*
+humn = 602/2=301
+
+a = b
+c + d = e * f
+2 + 1 = (g + h) * 3
+3 = (2 + 2 + humn) * 3
+
+3 + 2 * 3
+3 * 2 + 3
+
+
+Postfix
+a = b
+a b =
+c d * 3 =
+2 e f + * 3 =
+2 1 1 + * 3 =
+
+Evaluate
+2 2 * 3 =
+4 3 =
+
+Infix
+a = b
+c * d = 3
+2 * (e + f) = 3
+2 * (1 + 1) = 3
+4 = 3 ....
