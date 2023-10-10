@@ -1,22 +1,16 @@
 import sys
+from dataclasses import dataclass
+
+OPERATORS = ['+', '*', '/', '-', '=']
+INVERSIONS = {
+    '+': '-',
+    '-': '+',
+    '/': '*',
+    '*': '/'
+}
 
 
-def do_job(job: str, jobs: dict):
-    if job.isdigit():
-        return int(job)
-
-    first_monkey_name, operand, second_monkey_name = job.split()
-    if operand == '+':
-        return do_job(jobs[first_monkey_name], jobs) + do_job(jobs[second_monkey_name], jobs)
-    elif operand == '-':
-        return do_job(jobs[first_monkey_name], jobs) - do_job(jobs[second_monkey_name], jobs)
-    elif operand == '*':
-        return do_job(jobs[first_monkey_name], jobs) * do_job(jobs[second_monkey_name], jobs)
-    elif operand == '/':
-        return do_job(jobs[first_monkey_name], jobs) // do_job(jobs[second_monkey_name], jobs)
-
-
-def expand_in_postfix(expression: str, jobs: dict):
+def expand_in_postfix(expression: str, jobs: dict) -> str:
     lhs, _, rhs = expression.split()
     expr = [lhs, rhs, '=']
     while True:
@@ -34,6 +28,49 @@ def expand_in_postfix(expression: str, jobs: dict):
         expr = list(new_symbols)
     return str.join(' ', expr)
 
+
+@dataclass
+class Node:
+
+    value: str
+    left_operand: None = None
+    right_operand: None = None
+
+    def is_operator(self) -> bool:
+        return self.value in OPERATORS
+
+
+def build_tree(postfix: str) -> Node:
+    stack = []
+    operators = ['+', '*', '/', '-', '=']
+    for symbol in postfix.split():
+        if symbol in operators:
+            second_operand = stack.pop()
+            first_operand = stack.pop()
+            operator_node = Node(
+                value=symbol,
+                left_operand=first_operand,
+                right_operand=second_operand)
+            stack.append(operator_node)
+        else:
+            stack.append(Node(symbol))
+    return stack.pop()
+
+
+def apply_inverted_operation(root: Node, operator: Node):
+    new_subtree_root: Node = (operator.left_operand if operator.left_operand.is_operator()
+                              else operator.right_operand)
+    root.left_operand = new_subtree_root
+    operator.value = INVERSIONS[operator.value]
+    operand = (operator.left_operand if not operator.left_operand.is_operator()
+               else operator.right_operand)
+
+    new_subtree_rhs = root.right_operand
+    root.right_operand = operator
+    operator.left_operand = new_subtree_rhs
+    operator.right_operand = operand
+
+
 def main():
     filename = sys.argv[1]
     jobs = {}
@@ -41,8 +78,10 @@ def main():
         for line in job_list:
             monkey_name, job = line.split(':')
             jobs[monkey_name] = job.strip()
-    result = do_job(jobs['root'], jobs)
-    print(result)
+    jobs['humn'] = 'humn'
+    postfix = expand_in_postfix(jobs['root'], jobs)
+    tree = build_tree(postfix)
+    g = 2
 
 
 def test():
@@ -56,7 +95,12 @@ def test():
         'f': '1'
     }
     postfix = expand_in_postfix(jobs['root'], jobs)
-    a = 3
+    tree = build_tree('2 3 X + * 10 =')
+    while not tree.left_operand.value == 'X':
+        apply_inverted_operation(tree, tree.left_operand)
+    a = 2
+
+
 
 if __name__ == '__main__':
     test()
