@@ -378,7 +378,7 @@ zwdl: whpq + crrq
 nszc: qnwh + jnwm
 nfzt: 1
 mqqp: 3
-humn: 892
+humn: 1024
 rzpb: zrqw * dbtz
 qhtl: 2
 cbhp: 2

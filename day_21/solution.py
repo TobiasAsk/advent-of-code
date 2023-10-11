@@ -1,72 +1,37 @@
 import sys
-from dataclasses import dataclass
-
-OPERATORS = ['+', '*', '/', '-', '=']
-INVERSIONS = {
-    '+': '-',
-    '-': '+',
-    '/': '*',
-    '*': '/'
-}
 
 
-def expand_in_postfix(expression: str, jobs: dict) -> str:
-    lhs, _, rhs = expression.split()
-    expr = [lhs, rhs, '=']
-    while True:
-        new_symbols = []
-        for symbol in expr:
-            expanded = jobs.get(symbol, symbol)
-            parts = expanded.split()
-            if len(parts) > 1:
-                operand, operator, other_operand = parts
-                new_symbols.extend([operand, other_operand, operator])
-            else:
-                new_symbols.append(expanded)
-        if new_symbols == expr:
-            break
-        expr = list(new_symbols)
-    return str.join(' ', expr)
+def do_job(job: str, jobs: dict):
+    if job.isdigit():
+        return int(job)
+
+    first_monkey_name, operator, second_monkey_name = job.split()
+    if operator == '+':
+        return do_job(jobs[first_monkey_name], jobs) + do_job(jobs[second_monkey_name], jobs)
+    elif operator == '-':
+        return do_job(jobs[first_monkey_name], jobs) - do_job(jobs[second_monkey_name], jobs)
+    elif operator == '*':
+        return do_job(jobs[first_monkey_name], jobs) * do_job(jobs[second_monkey_name], jobs)
+    elif operator == '/':
+        return do_job(jobs[first_monkey_name], jobs) / do_job(jobs[second_monkey_name], jobs)
+    elif operator == '=':
+        left_operand = do_job(jobs[first_monkey_name], jobs)
+        right_operand = do_job(jobs[second_monkey_name], jobs)
+        if left_operand == right_operand:
+            return 'Eureka'
+        return left_operand > right_operand
 
 
-@dataclass
-class Node:
-
-    value: str
-    left_operand: None = None
-    right_operand: None = None
-
-    def is_operator(self) -> bool:
-        return self.value in OPERATORS
-
-
-def build_tree(postfix: str) -> Node:
-    stack = []
-    operators = ['+', '*', '/', '-', '=']
-    for symbol in postfix.split():
-        if symbol in operators:
-            second_operand = stack.pop()
-            first_operand = stack.pop()
-            operator_node = Node(
-                value=symbol,
-                left_operand=first_operand,
-                right_operand=second_operand)
-            stack.append(operator_node)
-        else:
-            stack.append(Node(symbol))
-    return stack.pop()
-
-
-def apply_inverted_operation(root: Node, operator: Node, keep_left):
-    new_subtree_root = operator.left_operand if keep_left else operator.right_operand
-    root.left_operand = new_subtree_root
-    operator.value = INVERSIONS[operator.value]
-    operand = operator.right_operand if keep_left else operator.left_operand
-
-    new_subtree_rhs = root.right_operand
-    root.right_operand = operator
-    operator.left_operand = new_subtree_rhs
-    operator.right_operand = operand
+def search(lower_limit: int, upper_limit: int, jobs: dict[str, str]):
+    value = (upper_limit + lower_limit) / 2
+    jobs['humn'] = str(int(value))
+    is_higher = do_job(jobs['root'], jobs)
+    if is_higher == 'Eureka':
+        return value
+    if is_higher:
+        return search(value, upper_limit, jobs)
+    else:
+        return search(lower_limit, value, jobs)
 
 
 def main():
@@ -76,50 +41,20 @@ def main():
         for line in job_list:
             monkey_name, job = line.split(':')
             jobs[monkey_name] = job.strip()
-    jobs['humn'] = 'humn'
     jobs['root'] = jobs['root'].replace('+', '=')
-    postfix = expand_in_postfix(jobs['root'], jobs)
-    tree = build_tree(postfix)
-    path = search('humn', tree)
-    for operator, pick_right_child in path[1:-1]:
-        apply_inverted_operation(tree, operator, pick_right_child)
-    solution = solve(tree.right_operand)
-    print(solution)
+    lower_limit = None
+    while True:
+        left_side_higher = do_job(jobs['root'], jobs)
+        if left_side_higher:
+            lower_limit = jobs['humn']
+            jobs['humn'] = str(int(jobs['humn']) * 2)
+        else:
+            break
 
-
-def solve(subtree: Node):
-    if not subtree.is_operator():
-        return int(subtree.value)
-    left_operand = solve(subtree.left_operand)
-    right_operand = solve(subtree.right_operand)
-    if subtree.value == '/':
-        return left_operand // right_operand
-    elif subtree.value == '-':
-        return left_operand - right_operand
-    elif subtree.value == '+':
-        return left_operand + right_operand
-    elif subtree.value == '*':
-        return left_operand * right_operand
-
-def search(target: str, node: Node):
-    if node.value == target:
-        return [(node, None)]
-    first_option = search(target, node.left_operand) if node.left_operand else None
-    if first_option:
-        return [(node, True)] + first_option
-    second_option = search(target, node.right_operand) if node.right_operand else None
-    if second_option: return [(node, False)] + second_option
-    return None
-
-def test():
-    tree = build_tree('2 1 + 3 X + * 12 =')
-    path = search('X', tree)
-    for operator, pick_right_child in path[1:-1]:
-        apply_inverted_operation(tree, operator, pick_right_child)
-    solution = solve(tree.right_operand)
-    assert solution == 1
+    upper_limit = jobs['humn']
+    value = search(int(lower_limit), int(upper_limit), jobs)
+    print(value)
 
 
 if __name__ == '__main__':
-    # test()
     main()
