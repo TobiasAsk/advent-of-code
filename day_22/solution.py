@@ -55,6 +55,7 @@ def move(num_steps, facing, position, board_map) -> int:
     for _ in range(num_steps):
         new_x = x + d_x
         new_y = y + d_y
+        wrap = False
 
         if (0 <= new_x < max_width and 0 <= new_y < max_height):
             if board_map[new_y][new_x] == '.':
@@ -62,18 +63,24 @@ def move(num_steps, facing, position, board_map) -> int:
                 y = new_y
 
             elif board_map[new_y][new_x] == ' ':
-                opposite_d_x, opposite_d_y = DIRECTIONS[(facing+2) % 4]
+                wrap = True
 
-                while (0 <= new_x + opposite_d_x < max_width and 0 <= new_y + opposite_d_y < max_height and
-                        board_map[new_y+opposite_d_y][new_x+opposite_d_x] != ' '):
-                    new_x += opposite_d_x
-                    new_y += opposite_d_y
+        else:
+            wrap = True
+                    
+        if wrap:
+            opposite_d_x, opposite_d_y = DIRECTIONS[(facing+2) % 4]
 
-                if board_map[new_y][new_x] == '.':
-                    x = new_x
-                    y = new_y
-                else:
-                    break
+            while (0 <= new_x + opposite_d_x < max_width and 0 <= new_y + opposite_d_y < max_height and
+                    board_map[new_y+opposite_d_y][new_x+opposite_d_x] != ' '):
+                new_x += opposite_d_x
+                new_y += opposite_d_y
+
+            if board_map[new_y][new_x] == '.':
+                x = new_x
+                y = new_y
+            else:
+                break
 
         position = (x, y)
 
