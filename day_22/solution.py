@@ -2,7 +2,7 @@ import sys
 from enum import Enum
 from collections import namedtuple
 
-FACE_SIZE = 4
+FACE_SIZE = 50
 
 
 class Direction(Enum):
@@ -14,6 +14,13 @@ class Direction(Enum):
 
 FoldCorner = namedtuple(
     'FoldCorner', ['face', 'clockwise_arm', 'counter_clockwise_arm'])
+
+HIGHER_IS_HIGHER = [
+    ['N/A', True, False, False],  # from right
+    [True, 'N/A', False, False],  # from down
+    [False, False, 'N/A', True],  # from left
+    [False, False, True, 'N/A']  # from up
+]
 
 
 CORNERS = [
@@ -45,11 +52,10 @@ def get_corners(faces: list[tuple[int]]) -> list[FoldCorner]:
             second_point = x+other_dir.value[0], y+other_dir.value[1]
 
             if first_point in faces and second_point in faces:
-                corners.append(
-                    FoldCorner(
-                        face=face,
-                        clockwise_arm=other_dir,
-                        counter_clockwise_arm=dir))
+                corners.append(FoldCorner(
+                    face=face,
+                    clockwise_arm=other_dir,
+                    counter_clockwise_arm=dir))
 
     return corners
 
@@ -58,8 +64,18 @@ def move_g(position, direction):
     return tuple(position[i]+direction[i] for i in range(2))
 
 
-def get_edge_pairs(corners: list[FoldCorner], faces: list[tuple[int]]):
-    pairs = []
+def rotate(direction: Direction, clockwise: bool) -> Direction:
+    all_dirs = list(Direction)
+    dir_idx = all_dirs.index(direction)
+    offset = 1 if clockwise else -1
+    return all_dirs[(dir_idx+offset) % len(all_dirs)]
+
+
+def get_edge_pairs(
+        corners: list[FoldCorner],
+        faces: list[tuple[int]]) -> dict[tuple[tuple[int], Direction], tuple[tuple[int], Direction]]:
+
+    pairs = {}
 
     for corner in corners:
         clockwise_pos: tuple[int] = corner.face
@@ -82,32 +98,28 @@ def get_edge_pairs(corners: list[FoldCorner], faces: list[tuple[int]]):
                 keep_going = True
 
                 if not new_counter_clockwise_pos in faces:
-                    all_dirs = list(Direction)
-                    edge_idx = all_dirs.index(counter_clockwise_edge)
-                    dir_idx = all_dirs.index(counter_clockwise_dir)
-                    counter_clockwise_dir = all_dirs[(
-                        dir_idx-1) % len(all_dirs)]
-                    counter_clockwise_edge = all_dirs[(
-                        edge_idx-1) % len(all_dirs)]
+                    counter_clockwise_dir = rotate(counter_clockwise_dir, False)
+                    counter_clockwise_edge = rotate(counter_clockwise_edge, False)
 
             if new_counter_clockwise_pos in faces:
                 counter_clockwise_pos = new_counter_clockwise_pos
                 keep_going = True
 
                 if not new_clockwise_pos in faces:
-                    all_dirs = list(Direction)
-                    edge_idx = all_dirs.index(clockwise_edge)
-                    dir_idx = all_dirs.index(clockwise_dir)
-                    clockwise_dir = all_dirs[(
-                        dir_idx+1) % len(all_dirs)]
-                    clockwise_edge = all_dirs[(
-                        edge_idx+1) % len(all_dirs)]
+                    clockwise_dir = rotate(clockwise_dir, True)
+                    clockwise_edge = rotate(clockwise_edge, True)
 
             if keep_going:
-                pairs.append(
-                    ((clockwise_pos, clockwise_edge),
-                        (counter_clockwise_pos, counter_clockwise_edge))
-                )
+                clockwise_dir_idx = list(Direction).index(clockwise_dir)
+                counter_clockwise_dir_idx = list(Direction).index(counter_clockwise_dir)
+                higher_is_higher = HIGHER_IS_HIGHER[clockwise_dir_idx][counter_clockwise_dir_idx]
+
+                pairs[(clockwise_pos, clockwise_edge)] = (counter_clockwise_pos,
+                                                          rotate(rotate(counter_clockwise_edge, True), True),
+                                                          higher_is_higher)
+                pairs[(counter_clockwise_pos, counter_clockwise_edge)] = (clockwise_pos,
+                                                                          rotate(rotate(clockwise_edge, True), True),
+                                                                          higher_is_higher)
 
     return pairs
 
@@ -151,15 +163,22 @@ def print_board(board_map, position):
     print()
 
 
-def move(num_steps, facing, position, board_map) -> int:
+def move(
+        num_steps: int,
+        facing: int,
+        position: tuple[int],
+        board_map: list[str],
+        pairs: dict) -> tuple[tuple[int], int]:
+
     max_width, max_height = len(board_map[0]), len(board_map)
-    d_x, d_y = list(Direction)[facing].value
     x, y = position
 
     for _ in range(num_steps):
+        d_x, d_y = list(Direction)[facing].value
         new_x = x + d_x
         new_y = y + d_y
         wrap = False
+        face = x // FACE_SIZE, y // FACE_SIZE
 
         if (0 <= new_x < max_width and 0 <= new_y < max_height):
             if board_map[new_y][new_x] == '.':
@@ -173,22 +192,31 @@ def move(num_steps, facing, position, board_map) -> int:
             wrap = True
 
         if wrap:
-            opposite_d_x, opposite_d_y = list(Direction)[(facing+2) % 4].value
+            direction = list(Direction)[facing]
+            (new_face_x, new_face_y), new_direction, higher_is_higher = pairs[(face, direction)]
 
-            while (0 <= new_x + opposite_d_x < max_width and 0 <= new_y + opposite_d_y < max_height and
-                    board_map[new_y+opposite_d_y][new_x+opposite_d_x] != ' '):
-                new_x += opposite_d_x
-                new_y += opposite_d_y
+            if new_direction in [Direction.DOWN, Direction.UP]:
+                new_y = (new_face_y * FACE_SIZE if new_direction ==
+                         Direction.DOWN else new_face_y * FACE_SIZE + FACE_SIZE - 1)
+                dimension = x if direction in [Direction.DOWN, Direction.UP] else y
+                factor = (dimension % FACE_SIZE) if higher_is_higher else FACE_SIZE - dimension % FACE_SIZE - 1
+                new_x = new_face_x * FACE_SIZE + factor
+
+            else:
+                new_x = (new_face_x * FACE_SIZE if new_direction ==
+                         Direction.RIGHT else new_face_x * FACE_SIZE + FACE_SIZE - 1)
+                dimension = y if direction in [Direction.RIGHT, Direction.LEFT] else x
+                factor = (dimension % FACE_SIZE) if higher_is_higher else FACE_SIZE - dimension % FACE_SIZE - 1
+                new_y = new_face_y * FACE_SIZE + factor
 
             if board_map[new_y][new_x] == '.':
                 x = new_x
                 y = new_y
-            else:
-                break
+                facing = list(Direction).index(new_direction)
 
         position = (x, y)
 
-    return position
+    return position, facing
 
 
 def main():
@@ -199,9 +227,13 @@ def main():
     board_map, path, position = parse_notes(notes)
     facing = 0
 
+    faces = get_faces(board_map)
+    corners = get_corners(faces)
+    edge_pairs = get_edge_pairs(corners, faces)
+
     for instruction in path:
         if isinstance(instruction, int):
-            position = move(instruction, facing, position, board_map)
+            position, facing = move(instruction, facing, position, board_map, edge_pairs)
 
         else:
             rotation = 1 if instruction == 'R' else -1
@@ -211,12 +243,6 @@ def main():
     password = 1000 * (y+1) + 4 * (x+1) + facing
     print(f'Password is {password}')
 
-    faces = get_faces(board_map)
-    corners = get_corners(faces)
-    edge_pairs = get_edge_pairs(corners, faces)
-    a = 2
-
 
 if __name__ == '__main__':
-    f = Direction.LEFT
     main()
