@@ -62,15 +62,69 @@ def get_blizzards(valley_map) -> list[Blizzard]:
     return blizzards
 
 
+def get_possible_moves(
+        expedition_position: tuple[int],
+        blizzards: list[Blizzard],
+        valley_map: list[str]) -> list[tuple[int]]:
+
+    moves = []
+    next_blizzard_positions = {b.position for b in move_blizzards(blizzards, valley_map)}
+    if expedition_position not in next_blizzard_positions:  # wait
+        moves.append(expedition_position)
+
+    current_blizzard_positions = {b.position for b in blizzards}
+    x, y = expedition_position
+    for dx, dy in MOVE_DELTAS:  # move
+        if ((x+dx, y+dy) not in current_blizzard_positions | next_blizzard_positions
+                and valley_map[y+dy][x+dx] != '#'):
+            moves.append((x+dx, y+dy))
+
+    return moves
+
+
+def backtrack(
+        expedition_position,
+        blizzards, valley_map,
+        goal_position,
+        path,
+        all_paths):
+
+    possible_moves = get_possible_moves(expedition_position, blizzards, valley_map)
+    if not possible_moves:
+        return False
+
+    for move in possible_moves:
+        if move == goal_position:
+            all_paths.append(path + [goal_position])
+            return True
+        result = backtrack(
+            move,
+            move_blizzards(blizzards, valley_map),
+            valley_map,
+            goal_position,
+            path + [move],
+            all_paths)
+        if not result:
+            break
+
+
 def main():
     filename = sys.argv[1]
     with open(filename) as valley_map_file:
         valley_map = valley_map_file.read().splitlines()
 
     blizzards = get_blizzards(valley_map)
-    for _ in range(5):
-        blizzards = move_blizzards(blizzards, valley_map)
-        print_map(blizzards, valley_map)
+    expedition_position = (6, 3)
+    goal_position = (6, 5)
+    all_paths = []
+    backtrack(
+        expedition_position,
+        blizzards,
+        valley_map,
+        goal_position,
+        [],
+        all_paths)
+    a = 2
 
 
 if __name__ == '__main__':
