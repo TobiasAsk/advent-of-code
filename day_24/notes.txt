@@ -1,0 +1,4 @@
+Collision if
+for B in blizzards:
+1. New E_pos == new B_pos
+2. New E_pos == old B_pos and New B_pos == old E_pos
