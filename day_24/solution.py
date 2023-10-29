@@ -1,5 +1,7 @@
 import sys
 from collections import namedtuple
+from dataclasses import dataclass
+
 
 Blizzard = namedtuple('blizzard', ['position', 'direction'])
 DIRECTIONS = '>v<^'
@@ -41,8 +43,8 @@ def print_map(blizzards: list[Blizzard], valley_map):
         print()
 
 
-def get_blizzards(valley_map) -> list[Blizzard]:
-    blizzards = []
+def get_blizzards(valley_map) -> frozenset[Blizzard]:
+    blizzards = set()
     valley_height, valley_width = len(valley_map), len(valley_map[0])
 
     for row in range(valley_height):
@@ -50,11 +52,11 @@ def get_blizzards(valley_map) -> list[Blizzard]:
             char = valley_map[row][col]
 
             if char in DIRECTIONS:
-                blizzards.append(Blizzard(
+                blizzards.add(Blizzard(
                     position=(col, row),
                     direction=DIRECTIONS.index(char)))
 
-    return blizzards
+    return frozenset(blizzards)
 
 
 def get_new_position(
@@ -89,27 +91,31 @@ def get_possible_moves(
     return moves
 
 
-def backtrack(
-        expedition_position,
-        blizzards, valley_map,
-        goal_position,
-        path,
-        all_paths):
+@dataclass
+class Search:
+    best_path_length: int
+    valley_map: list[str]
 
-    possible_moves = get_possible_moves(expedition_position, blizzards, valley_map)
-
-    for move in possible_moves:
-        if move == goal_position:
-            all_paths.append(path + [goal_position])
-            break
-
-        backtrack(
-            move,
-            move_blizzards(blizzards, valley_map),
-            valley_map,
+    def backtrack(
+            self, expedition_position,
+            blizzards,
             goal_position,
-            path + [move],
-            all_paths)
+            path):
+
+        if len(path) < self.best_path_length:
+            possible_moves = get_possible_moves(expedition_position, blizzards, self.valley_map)
+
+            for move in possible_moves:
+                if move == goal_position:
+                    if len(path + [goal_position]) < self.best_path_length:
+                        self.best_path_length = len(path + [goal_position])
+                    break
+
+                self.backtrack(
+                    move,
+                    move_blizzards(blizzards, self.valley_map),
+                    goal_position,
+                    path + [move])
 
 
 def main():
@@ -120,15 +126,10 @@ def main():
     blizzards = get_blizzards(valley_map)
     expedition_position = (1, 0)
     goal_position = (6, 5)
-    all_paths = []
-    backtrack(
-        expedition_position,
-        blizzards,
-        valley_map,
-        goal_position,
-        [],
-        all_paths)
-    a = 2
+    search = Search(valley_map=valley_map, best_path_length=1000)
+    search.backtrack(expedition_position, blizzards, goal_position, [])
+    min_time = search.best_path_length
+    print(min_time)
 
 
 if __name__ == '__main__':
