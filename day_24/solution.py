@@ -77,11 +77,11 @@ def get_possible_moves(
         valley_map: list[str]) -> list[tuple[int]]:
 
     moves = []
+    x, y = expedition_position
     next_blizzard_positions = {b.position for b in move_blizzards(blizzards, valley_map)}
     if expedition_position not in next_blizzard_positions and expedition_position != (1, 0):  # wait
         moves.append(expedition_position)
 
-    x, y = expedition_position
     for dx, dy in MOVE_DELTAS:  # move
         new_exp_pos = (x+dx, y+dy)
         # can loop around due to negative indexing but it's fine
@@ -93,30 +93,29 @@ def get_possible_moves(
 
 @dataclass
 class Search:
-    best_path_length: int
+    shortest: int
     valley_map: list[str]
 
     def backtrack(
             self, expedition_position,
             blizzards,
             goal_position,
-            path):
+            minutes_spent=0):
 
-        if len(path) < self.best_path_length:
+        if minutes_spent < self.shortest:
             possible_moves = get_possible_moves(expedition_position, blizzards, self.valley_map)
 
-            for move in possible_moves:
-                if move == goal_position:
-                    if len(path + [goal_position]) < self.best_path_length:
-                        self.best_path_length = len(path + [goal_position])
-                    break
+            if goal_position in possible_moves:
+                if minutes_spent + 1 < self.shortest:
+                    self.shortest = minutes_spent + 1
+                return
 
+            for move in possible_moves:
                 self.backtrack(
                     move,
                     move_blizzards(blizzards, self.valley_map),
                     goal_position,
-                    path + [move])
-
+                    minutes_spent+1)
 
 def main():
     filename = sys.argv[1]
@@ -125,11 +124,11 @@ def main():
 
     blizzards = get_blizzards(valley_map)
     expedition_position = (1, 0)
+    # goal_position = (100, 36)
     goal_position = (6, 5)
-    search = Search(valley_map=valley_map, best_path_length=1000)
-    search.backtrack(expedition_position, blizzards, goal_position, [])
-    min_time = search.best_path_length
-    print(min_time)
+    search = Search(valley_map=valley_map, shortest=100)
+    search.backtrack(expedition_position, blizzards, goal_position)
+    print(search.shortest)
 
 
 if __name__ == '__main__':
