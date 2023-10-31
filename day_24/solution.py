@@ -14,8 +14,8 @@ MOVE_DELTAS = [
 
 
 def move_blizzards(
-        blizzards: list[Blizzard],
-        valley_map: list[str]) -> list[Blizzard]:
+        blizzards: frozenset[Blizzard],
+        valley_map: list[str]) -> frozenset[Blizzard]:
 
     moved: list[Blizzard] = []
     for blizzard in blizzards:
@@ -25,10 +25,14 @@ def move_blizzards(
             position=new_position,
             direction=blizzard.direction))
 
-    return moved
+    return frozenset(moved)
 
 
-def print_map(blizzards: list[Blizzard], valley_map):
+def print_map(
+        blizzards: list[Blizzard],
+        valley_map,
+        expedition_position):
+
     valley_height, valley_width = len(valley_map), len(valley_map[0])
     blizzard_positions = [b.position for b in blizzards]
 
@@ -38,7 +42,7 @@ def print_map(blizzards: list[Blizzard], valley_map):
                 blizzard = next(b for b in blizzards if b.position == (col, row))
                 print(DIRECTIONS[blizzard.direction], end='')
             else:
-                print('#' if col in [0, valley_width-1]
+                print('E' if (col, row) == expedition_position else '#' if col in [0, valley_width-1]
                       or row in [0, valley_height-1] else '.', end='')
         print()
 
@@ -79,14 +83,15 @@ def get_possible_moves(
     moves = []
     x, y = expedition_position
     next_blizzard_positions = {b.position for b in move_blizzards(blizzards, valley_map)}
-    if expedition_position not in next_blizzard_positions and expedition_position != (1, 0):  # wait
-        moves.append(expedition_position)
 
     for dx, dy in MOVE_DELTAS:  # move
         new_exp_pos = (x+dx, y+dy)
         # can loop around due to negative indexing but it's fine
         if valley_map[y+dy][x+dx] != '#' and new_exp_pos not in next_blizzard_positions:
             moves.append(new_exp_pos)
+    
+    if expedition_position not in next_blizzard_positions:  # wait
+        moves.append(expedition_position)
 
     return moves
 
@@ -100,14 +105,14 @@ class Search:
             self, expedition_position,
             blizzards,
             goal_position,
-            minutes_spent=0):
+            path=[]):
 
-        if minutes_spent < self.shortest:
+        if len(path) < self.shortest:
             possible_moves = get_possible_moves(expedition_position, blizzards, self.valley_map)
 
             if goal_position in possible_moves:
-                if minutes_spent + 1 < self.shortest:
-                    self.shortest = minutes_spent + 1
+                if len(path) + 1 < self.shortest:
+                    self.shortest = len(path) + 1
                 return
 
             for move in possible_moves:
@@ -115,7 +120,8 @@ class Search:
                     move,
                     move_blizzards(blizzards, self.valley_map),
                     goal_position,
-                    minutes_spent+1)
+                    path+[(move, hash(blizzards))])
+
 
 def main():
     filename = sys.argv[1]
@@ -124,9 +130,9 @@ def main():
 
     blizzards = get_blizzards(valley_map)
     expedition_position = (1, 0)
-    # goal_position = (100, 36)
-    goal_position = (6, 5)
-    search = Search(valley_map=valley_map, shortest=100)
+    goal_position = (100, 36)
+    # goal_position = (6, 5)
+    search = Search(valley_map=valley_map, shortest=1000)
     search.backtrack(expedition_position, blizzards, goal_position)
     print(search.shortest)
 
