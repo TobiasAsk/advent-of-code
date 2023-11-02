@@ -1,6 +1,6 @@
 import sys
 from collections import namedtuple
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from heapq import *
 
 
@@ -53,14 +53,19 @@ class SearchNode:
     expected_cost: int = 0  # f
     parent: None = None
     status: bool = None
+    kids: list = field(default_factory=list)
 
     def __lt__(self, other):
-        if self.expected_cost < other.expected_cost:
-            return True
-        elif self.expected_cost == other.expected_cost:
-            return self.estimated_distance_to_goal <= other.estimated_distance_to_goal
-        else:
-            return False
+        # if self.expected_cost < other.expected_cost:
+        #     return True
+        # elif self.expected_cost == other.expected_cost:
+        #     return self.estimated_distance_to_goal < other.estimated_distance_to_goal
+        # else:
+        #     return False
+        return self.expected_cost < other.expected_cost
+
+    def __hash__(self) -> int:
+        return hash(self.expedition_position) + sum(hash(b.position) for b in self.blizzards)
 
     def get_successors(self) -> list:
         moves = []
@@ -137,6 +142,15 @@ def attach_and_eval(C: SearchNode, P: SearchNode, arc_cost):
     C.expected_cost = C.distance_from_root + C.estimated_distance_to_goal
 
 
+def propagate_path_improvements(node: SearchNode, arc_cost):
+    for child in node.kids:
+        if node.distance_from_root + arc_cost < child.distance_from_root:
+            child.parent = node
+            child.distance_from_root = node.distance_from_root + arc_cost
+            child.expected_cost = child.distance_from_root + child.estimated_distance_to_goal
+            propagate_path_improvements(child, arc_cost)
+
+
 def search(blizzards: list[Blizzard],
            expedition_position: tuple[int],
            valley_map: list[str],
@@ -154,6 +168,10 @@ def search(blizzards: list[Blizzard],
     initial_node.compute_heuristic()
     initial_node.expected_cost = initial_node.estimated_distance_to_goal
 
+    generated_nodes = {
+        hash(initial_node): initial_node
+    }
+
     open_nodes: list[SearchNode] = [initial_node]
     while open_nodes:
         current_node = heappop(open_nodes)
@@ -163,6 +181,14 @@ def search(blizzards: list[Blizzard],
             return current_node
 
         for successor in current_node.get_successors():
+            state_hash = hash(successor)
+            if state_hash in generated_nodes:
+                successor = generated_nodes[state_hash]
+            else:
+                generated_nodes[state_hash] = successor
+
+            current_node.kids.append(successor)
+
             if successor.status == None:
                 attach_and_eval(successor, current_node, arc_cost)
                 heappush(open_nodes, successor)
@@ -170,7 +196,14 @@ def search(blizzards: list[Blizzard],
 
             elif current_node.distance_from_root + arc_cost < successor.distance_from_root:
                 attach_and_eval(successor, current_node, arc_cost)
-                heapify(open_nodes)
+                if successor.status == False:
+                    propagate_path_improvements(successor, arc_cost)
+                open_nodes.sort()
+
+
+def get_goal_position(valley_map):
+    x = valley_map[-1].index('.')
+    return x, len(valley_map)-1
 
 
 def main():
@@ -180,9 +213,8 @@ def main():
 
     blizzards = get_blizzards(valley_map)
     expedition_position = (1, 0)
-    # goal_position = (100, 36)
-    goal_position = (6, 5)
-    goal_node = search(blizzards, expedition_position, valley_map, goal_position, 1)
+    goal_position = get_goal_position(valley_map)
+    goal_node = search(blizzards, expedition_position, valley_map, goal_position, 0.6)
     solution = build_solution(goal_node)
     print(len(solution)-1)
 
