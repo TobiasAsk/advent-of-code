@@ -15,18 +15,13 @@ MOVE_DELTAS = [
 
 
 def move_blizzards(
-        blizzards: frozenset[Blizzard],
-        valley_map: list[str]) -> frozenset[Blizzard]:
+        blizzards: list[Blizzard],
+        valley_map: list[str]) -> list[Blizzard]:
 
-    moved: list[Blizzard] = []
-    for blizzard in blizzards:
-        new_position = get_new_position(blizzard, valley_map)
-
-        moved.append(Blizzard(
-            position=new_position,
-            direction=blizzard.direction))
-
-    return frozenset(moved)
+    return [Blizzard(
+        position=get_new_position(b, valley_map),
+        direction=b.direction)
+        for b in blizzards]
 
 
 def get_new_position(
@@ -56,12 +51,6 @@ class SearchNode:
     kids: list = field(default_factory=list)
 
     def __lt__(self, other):
-        # if self.expected_cost < other.expected_cost:
-        #     return True
-        # elif self.expected_cost == other.expected_cost:
-        #     return self.estimated_distance_to_goal < other.estimated_distance_to_goal
-        # else:
-        #     return False
         return self.expected_cost < other.expected_cost
 
     def __hash__(self) -> int:
@@ -119,8 +108,8 @@ def print_map(
         print()
 
 
-def get_blizzards(valley_map) -> frozenset[Blizzard]:
-    blizzards = set()
+def get_blizzards(valley_map) -> list[Blizzard]:
+    blizzards = []
     valley_height, valley_width = len(valley_map), len(valley_map[0])
 
     for row in range(valley_height):
@@ -132,7 +121,7 @@ def get_blizzards(valley_map) -> frozenset[Blizzard]:
                     position=(col, row),
                     direction=DIRECTIONS.index(char)))
 
-    return frozenset(blizzards)
+    return blizzards
 
 
 def attach_and_eval(C: SearchNode, P: SearchNode, arc_cost):
