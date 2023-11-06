@@ -117,8 +117,8 @@ def get_blizzards(valley_map) -> list[Blizzard]:
             char = valley_map[row][col]
 
             if char in DIRECTIONS:
-                blizzards.add(Blizzard(
-                    position=(col, row),
+                blizzards.append(Blizzard(
+                    position=row*valley_height+col,
                     direction=DIRECTIONS.index(char)))
 
     return blizzards
