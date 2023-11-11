@@ -18,22 +18,37 @@ def move_blizzards(
         blizzards: list[Blizzard],
         valley_map: list[str]) -> list[Blizzard]:
 
+    bounds = len(valley_map), len(valley_map[0])
     return [Blizzard(
-        position=get_new_position(b, valley_map),
+        position=get_new_position(b, bounds),
         direction=b.direction)
         for b in blizzards]
 
 
 def get_new_position(
         blizzard: Blizzard,
-        valley_map: list[str]) -> tuple[int]:
+        bounds: tuple[int]) -> tuple[int]:
 
-    x, y = blizzard.position
-    dx, dy = MOVE_DELTAS[blizzard.direction]
-    valley_height, valley_width = len(valley_map), len(valley_map[0])
+    valley_height, valley_width = bounds
+    if blizzard.direction == 0:
+        def edge(p): return (p + 1) % valley_width == 0
+        return (blizzard.position + 1 if not edge(blizzard.position + 1) else
+                blizzard.position - valley_width + 3)
 
-    return ((x+dx, y+dy) if valley_map[y+dy][x+dx] != '#' else
-            ((x+2*dx) % valley_width + dx, (y+2*dy) % valley_height + dy))
+    elif blizzard.direction == 1:
+        def edge(p): return p > (valley_height - 1)*valley_width
+        return (blizzard.position + valley_width if not edge(blizzard.position + valley_width) else
+                blizzard.position % valley_width + valley_width)
+
+    if blizzard.direction == 2:
+        def edge(p): return p % valley_width == 0
+        return (blizzard.position - 1 if not edge(blizzard.position - 1) else
+                blizzard.position + valley_width - 3)
+
+    elif blizzard.direction == 3:
+        def edge(p): return p < valley_width
+        return (blizzard.position - valley_width if not edge(blizzard.position - valley_width) else
+                blizzard.position % valley_width + (valley_height-2)*valley_width)
 
 
 @dataclass
@@ -61,11 +76,14 @@ class SearchNode:
         x, y = self.expedition_position
         moved_blizzards = move_blizzards(self.blizzards, self.valley_map)
         next_blizzard_positions = {b.position for b in moved_blizzards}
+        valley_width = len(self.valley_map[0])
 
         for dx, dy in MOVE_DELTAS:  # move
             new_exp_pos = (x+dx, y+dy)
+
+            flat_pos = (y+dy) * valley_width + x+dx
             # can loop around due to negative indexing but it's fine
-            if self.valley_map[y+dy][x+dx] != '#' and new_exp_pos not in next_blizzard_positions:
+            if self.valley_map[y+dy][x+dx] != '#' and flat_pos not in next_blizzard_positions:
                 moves.append(SearchNode(
                     blizzards=moved_blizzards,
                     expedition_position=new_exp_pos,
@@ -73,7 +91,9 @@ class SearchNode:
                     goal_position=self.goal_position
                 ))
 
-        if self.expedition_position not in next_blizzard_positions:  # wait
+        flat_current_pos = y*valley_width + x
+
+        if flat_current_pos not in next_blizzard_positions:  # wait
             moves.append(SearchNode(
                 blizzards=moved_blizzards,
                 expedition_position=self.expedition_position,
@@ -99,8 +119,10 @@ def print_map(
 
     for row in range(valley_height):
         for col in range(valley_width):
-            if (col, row) in blizzard_positions:
-                blizzard = next(b for b in blizzards if b.position == (col, row))
+            pos = row*valley_width + col
+
+            if pos in blizzard_positions:
+                blizzard = next(b for b in blizzards if b.position == pos)
                 print(DIRECTIONS[blizzard.direction], end='')
             else:
                 print('E' if (col, row) == expedition_position else '#' if col in [0, valley_width-1]
@@ -118,7 +140,7 @@ def get_blizzards(valley_map) -> list[Blizzard]:
 
             if char in DIRECTIONS:
                 blizzards.append(Blizzard(
-                    position=row*valley_height+col,
+                    position=row*valley_width+col,
                     direction=DIRECTIONS.index(char)))
 
     return blizzards
@@ -202,6 +224,7 @@ def main():
 
     blizzards = get_blizzards(valley_map)
     expedition_position = (1, 0)
+
     goal_position = get_goal_position(valley_map)
     goal_node = search(blizzards, expedition_position, valley_map, goal_position, 0.6)
     solution = build_solution(goal_node)
