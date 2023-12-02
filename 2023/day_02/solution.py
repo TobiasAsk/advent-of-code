@@ -1,5 +1,7 @@
 import sys
 import re
+import operator
+from functools import reduce
 
 
 RED_CUBES_PATTERN = re.compile(r'(\d+) red')
@@ -10,7 +12,6 @@ PATTERNS = [
     GREEN_CUBES_PATTERN,
     BLUE_CUBES_PATTERN
 ]
-MAX = (12, 13, 14)  # r, g, b
 
 
 def max_num_cubes(pattern, line):
@@ -20,15 +21,14 @@ def max_num_cubes(pattern, line):
 
 def main():
     filename = sys.argv[1]
-    possible_ids_sum = 0
+    power_sum = 0
 
     with open(filename) as game_info_file:
-        for line_num, line in enumerate(game_info_file):
-            max_nums = [max_num_cubes(p, line) for p in PATTERNS]
-            if all(max_nums[i] <= MAX[i] for i in range(3)):
-                possible_ids_sum += (line_num+1)
+        for line in game_info_file:
+            min_required_cubes = [max_num_cubes(p, line) for p in PATTERNS]
+            power_sum += reduce(operator.mul, min_required_cubes)
 
-    print(f'Sum is {possible_ids_sum}')
+    print(f'Sum is {power_sum}')
 
 
 if __name__ == '__main__':
