@@ -1,4 +1,5 @@
 import sys
+from collections import defaultdict
 
 DIRECTIONS = [
     (0, -1),
@@ -28,7 +29,7 @@ def find_numbers(schematic_row: str):
     return numbers
 
 
-def has_adjacent_symbol(
+def get_adjacent_star(
         row_number: int,
         number_range: tuple[int],
         engine_schematic: list[str]) -> bool:
@@ -39,9 +40,9 @@ def has_adjacent_symbol(
         for dx, dy in DIRECTIONS:
             new_x, new_y = x+dx, row_number+dy
             if (0 <= new_x < width and 0 <= new_y < height and
-                    engine_schematic[new_y][new_x] not in '0123456789.'):
-                return True
-    return False
+                    engine_schematic[new_y][new_x] == '*'):
+                return new_x, new_y
+    return None
 
 
 def main():
@@ -49,14 +50,21 @@ def main():
     with open(filename) as engine_schematic_file:
         engine_schematic = engine_schematic_file.read().splitlines()
 
-    part_number_sum = 0
+    stars_to_nums = defaultdict(list)
+
     for row_num in range(len(engine_schematic)):
         number_ranges = find_numbers(engine_schematic[row_num])
         for number_range, number in number_ranges:
-            if has_adjacent_symbol(row_num, number_range, engine_schematic):
-                part_number_sum += number
+            if (star_pos := get_adjacent_star(
+                    row_num, number_range, engine_schematic)) != None:
+                stars_to_nums[star_pos].append(number)
 
-    print(part_number_sum)
+    gear_ratio_sum = 0
+    for adjacent_numbers in stars_to_nums.values():
+        if len(adjacent_numbers) == 2:
+            gear_ratio_sum += adjacent_numbers[0] * adjacent_numbers[1]
+
+    print(gear_ratio_sum)
 
 
 if __name__ == '__main__':
