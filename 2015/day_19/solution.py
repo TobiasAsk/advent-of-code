@@ -7,21 +7,26 @@ class Machine:
 
     def __init__(self, replacements: dict):
         self.replacements = replacements
+        self.consecutive_count = 0
+        self.previous_replacement = None
 
     @cache
     def get_min_required_steps(
             self, molecule: str,
-            medicine_molecule: str):
+            medicine_molecule: str,
+            replacement: str):
 
+        self.previous_replacement = replacement
         possible_replacements = self.get_possible_replacements(molecule, medicine_molecule)
         if not possible_replacements:
             return None
-        elif medicine_molecule in possible_replacements:
+        elif medicine_molecule in [mol for mol, _ in possible_replacements]:
             return 1
 
-        possibilities = [s for replacement in possible_replacements if (s := self.get_min_required_steps(
-            molecule=replacement,
-            medicine_molecule=medicine_molecule)) != None]
+        possibilities = [s for new_molecule, replacement in possible_replacements if (s := self.get_min_required_steps(
+            molecule=new_molecule,
+            medicine_molecule=medicine_molecule,
+            replacement=replacement)) != None]
 
         return 1 + min(possibilities) if possibilities else None
 
@@ -35,7 +40,7 @@ class Machine:
                 for repl in self.replacements[in_molecule]:
                     new_mol = molecule[:idx] + repl + molecule[idx+len(in_molecule):]
                     if len(new_mol) <= len(medicine_molecule):
-                        possible_replacements.append(new_mol)
+                        possible_replacements.append((new_mol, repl))
 
                 idx += 1
 
@@ -65,7 +70,8 @@ def main():
     machine = Machine(replacements)
     min_steps = machine.get_min_required_steps(
         molecule='e',
-        medicine_molecule=medicine_molecule
+        medicine_molecule=medicine_molecule,
+        replacement=None
     )
     print(min_steps)
 
