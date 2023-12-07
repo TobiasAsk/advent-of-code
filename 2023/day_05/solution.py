@@ -21,7 +21,7 @@ def get_maps(almanac: list[str]) -> list[list[Mapping]]:
                 category_map.append(mapping)
                 j += 1
             i = j
-            maps.append(category_map)
+            maps.append(sorted(category_map))
         else:
             i += 1
     return maps
@@ -61,14 +61,17 @@ def map_range(seed_range, mapping):
     if is_fully_within_map_range(numeric_range, map_range):
         mapped_range = numeric_range[0]+mapping.offset, numeric_range[1]+mapping.offset
         return [(mapped_range, True)]
+
     elif starts_in_map_range(numeric_range, map_range):
         covered, uncovered = split_range(numeric_range, mapping.upper, starts=True)
         mapped_covered = covered[0]+mapping.offset, covered[1]+mapping.offset
         return [(mapped_covered, True), (uncovered, False)]
+
     elif ends_in_map_range(numeric_range, map_range):
         uncovered, covered = split_range(numeric_range, mapping.lower, starts=False)
         mapped_covered = covered[0]+mapping.offset, covered[1]+mapping.offset
         return [(mapped_covered, True), (uncovered, False)]
+
     else:
         return [seed_range]
 
@@ -96,6 +99,7 @@ def main():
             for mapping in map:
                 seed_ranges = map_ranges(seed_ranges, mapping)
             seed_ranges = [(num_range, False) for num_range, _ in seed_ranges]
+
         min_location_in_batch = min(range_start for (range_start, _), _ in seed_ranges)
         min_location = min(min_location, min_location_in_batch)
 
@@ -103,7 +107,4 @@ def main():
 
 
 if __name__ == '__main__':
-    mapping = Mapping(50, 60, 100)
-    seed_range = ((52, 75), False)
-    f = map_range(seed_range, mapping)
     main()
