@@ -1,7 +1,7 @@
 import sys
 from dataclasses import dataclass
 
-CARD_STRENGTHS = 'AKQJT98765432'
+CARD_STRENGTHS = 'AKQT98765432J'
 
 
 @dataclass
@@ -10,19 +10,20 @@ class Hand:
 
     @property
     def type(self):
-        counts = {c: self.cards.count(c) for c in self.cards}
-        vals = counts.values()
-        if 5 in vals:
+        non_joker_counts = [self.cards.count(c) for c in set(self.cards) if c != 'J']
+        num_jokers = self.cards.count('J')
+        if any(c+num_jokers == 5 for c in non_joker_counts) or num_jokers == 5:
             return 7
-        elif 4 in vals:
+        elif any(c+num_jokers == 4 for c in non_joker_counts):
             return 6
-        elif 3 in vals and 2 in vals:
+        elif ((3 in non_joker_counts and 2 in non_joker_counts)
+              or (list(non_joker_counts).count(2) == 2 and num_jokers == 1)):  # ordinary full house or with a joker. More jokers than 1 would lead to a better hand
             return 5
-        elif 3 in vals:
+        elif any(c+num_jokers == 3 for c in non_joker_counts):
             return 4
-        elif list(vals).count(2) == 2:
+        elif list(non_joker_counts).count(2) == 2:
             return 3
-        elif 2 in vals:
+        elif any(c+num_jokers == 2 for c in non_joker_counts):
             return 2
         return 1
 
@@ -52,4 +53,9 @@ def main():
 
 
 if __name__ == '__main__':
+    five_of_a_kind = Hand('55555')
+    for i in range(6):
+        five_of_a_kind.cards = five_of_a_kind.cards.replace('5', 'J', i)
+        assert five_of_a_kind.type == 7
+
     main()
