@@ -1,0 +1,10 @@
+'CRnAlArPMg'
+
+
+'CRnAlArF'
+'CRnFYFYFArF'
+'CRnFYMgArF'
+'CRnMgYFArF'
+
+F => CaF => CaSiAl
+A* med edit distance som heuristikk?

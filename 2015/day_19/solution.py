@@ -7,44 +7,44 @@ class Machine:
 
     def __init__(self, replacements: dict):
         self.replacements = replacements
-        self.consecutive_count = 0
-        self.previous_replacement = None
 
     @cache
     def get_min_required_steps(
             self, molecule: str,
-            medicine_molecule: str,
-            replacement: str):
+            medicine_molecule: str):
 
-        self.previous_replacement = replacement
-        possible_replacements = self.get_possible_replacements(molecule, medicine_molecule)
+        possible_replacements = [r for r in self.get_replacements(molecule)
+                                 if len(r) <= len(medicine_molecule)]
+
         if not possible_replacements:
             return None
-        elif medicine_molecule in [mol for mol, _ in possible_replacements]:
+        elif medicine_molecule in possible_replacements:
             return 1
 
-        possibilities = [s for new_molecule, replacement in possible_replacements if (s := self.get_min_required_steps(
+        possibilities = [s for new_molecule in possible_replacements if (s := self.get_min_required_steps(
             molecule=new_molecule,
-            medicine_molecule=medicine_molecule,
-            replacement=replacement)) != None]
+            medicine_molecule=medicine_molecule)) != None]
 
         return 1 + min(possibilities) if possibilities else None
 
-    def get_possible_replacements(
-            self, molecule, medicine_molecule):
+    def get_replacements(
+            self, molecule: str) -> list[tuple[str, int]]:
 
-        possible_replacements = []
-        for in_molecule in self.replacements:
-            idx = 0
-            while (idx := molecule.find(in_molecule, idx)) > -1:
-                for repl in self.replacements[in_molecule]:
-                    new_mol = molecule[:idx] + repl + molecule[idx+len(in_molecule):]
-                    if len(new_mol) <= len(medicine_molecule):
-                        possible_replacements.append((new_mol, repl))
+        new_molecules = []
+        worst_molecules = []
+        for i in range(len(molecule)):
+            for j in range(2):
+                if i + j < len(molecule):
+                    for repl in self.replacements.get(molecule[i:i+j+1], []):
+                        new_molecule = molecule[:i] + repl + molecule[i+j+1:]
+                        if molecule[i:i+j+1] in repl:
+                            if new_molecule not in worst_molecules:
+                                worst_molecules.append(new_molecule)
+                        else:
+                            if new_molecule not in new_molecules:
+                                new_molecules.append(new_molecule)
 
-                idx += 1
-
-        return possible_replacements
+        return new_molecules + worst_molecules
 
 
 def parse_input(input_lines):
@@ -70,8 +70,7 @@ def main():
     machine = Machine(replacements)
     min_steps = machine.get_min_required_steps(
         molecule='e',
-        medicine_molecule=medicine_molecule,
-        replacement=None
+        medicine_molecule=medicine_molecule
     )
     print(min_steps)
 
