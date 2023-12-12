@@ -41,6 +41,20 @@ PIPE_TURNS = {
     }
 }
 
+START_REPLACEMENTS = {
+    (MovementDirection.SOUTH, MovementDirection.EAST): Bend.SOUTH_WEST.value,
+    (MovementDirection.SOUTH, MovementDirection.WEST): Bend.SOUTH_EAST.value,
+    (MovementDirection.NORTH, MovementDirection.WEST): Bend.NORTH_EAST.value,
+    (MovementDirection.NORTH, MovementDirection.EAST): Bend.NORTH_WEST.value,
+    (MovementDirection.EAST, MovementDirection.SOUTH): Bend.NORTH_EAST.value,
+    (MovementDirection.NORTH, MovementDirection.NORTH): Bend.STRAIGHT_VERTICAL.value,
+    (MovementDirection.SOUTH, MovementDirection.SOUTH): Bend.STRAIGHT_VERTICAL.value,
+    (MovementDirection.WEST, MovementDirection.WEST): Bend.STRAIGHT_HORIZONTAL.value,
+    (MovementDirection.EAST, MovementDirection.EAST): Bend.STRAIGHT_HORIZONTAL.value,
+}
+
+CORNERS = 'F7JL'
+
 
 def get_starting_direction(start_pos, pipe_map):
     start_x, start_y = start_pos
@@ -73,52 +87,40 @@ def move(position: tuple[int],
     return (x, y), direction
 
 
-def rotate(direction: MovementDirection, clockwise: bool) -> MovementDirection:
-    all_dirs = list(MovementDirection)
-    dir_idx = all_dirs.index(direction)
-    offset = 1 if clockwise else -1
-    return all_dirs[(dir_idx+offset) % len(all_dirs)]
-
-
-def flood_fill(
-        position: tuple[int],
-        pipe_map: list[str],
-        loop_tiles: set[tuple[int]]) -> set[tuple[int]]:
-    q = [position]
-    tiles = set()
-    height, width = len(pipe_map), len(pipe_map[0])
-
-    while q:
-        x, y = q.pop()
-        if (x, y) not in tiles:
-            tiles.add((x, y))
-
-            for direction in list(MovementDirection):
-                dx, dy = direction.value
-                if (0 <= y+dy < height and 0 <= x+dx < width and
-                        (x+dx, y+dy) not in loop_tiles and (x+dx, y+dy) not in tiles):
-                    q.append((x+dx, y+dy))
-
-    return tiles
-
-
-def get_loop_info(start_pos, start_dir, pipe_map) -> tuple[bool, set[tuple[int]]]:
+def get_loop_info(start_pos, first_dir, start_dir, pipe_map) -> tuple[str, set[tuple[int]]]:
     position = start_pos
     direction = start_dir
-    turn_sum = 0
-    all_dirs = list(MovementDirection)
     loop_tiles = {position}
 
     while pipe_map[position[1]][position[0]] != 'S':
-        previous_direction = direction
+        last_direction = direction
         position, direction = move(position, direction, pipe_map)
-        if direction != previous_direction:
-            prev_dir_idx = all_dirs.index(previous_direction)
-            turn_diff = 1 if all_dirs[(prev_dir_idx+1) % 4] == direction else -1
-            turn_sum += turn_diff
         loop_tiles.add(position)
 
-    return turn_sum > 0, loop_tiles
+    start_replacement = START_REPLACEMENTS[(last_direction, first_dir)]
+    return start_replacement, loop_tiles
+
+
+def ray_cast(row, pipe_map, loop_tiles):
+    # Outside: even
+    # Inside: odd
+    width = len(pipe_map[0])
+    num_intersections = [0 for _ in range(width)]
+    intersection_count = 0
+    first_corner = None
+
+    for x in range(width):
+        num_intersections[x] = intersection_count
+
+        if (x, row) in loop_tiles:
+            if pipe_map[row][x] == '|':
+                intersection_count += 1
+            elif pipe_map[row][x] in CORNERS:
+                if (first_corner == 'F' and pipe_map[row][x] == 'J') or (first_corner == 'L' and pipe_map[row][x] == '7'):
+                    intersection_count += 1
+                first_corner = pipe_map[row][x]
+
+    return num_intersections
 
 
 def main():
@@ -131,21 +133,13 @@ def main():
     position, direction = move(start_pos, start_direction, pipe_map)
     height, width = len(pipe_map), len(pipe_map[0])
 
-    is_clockwise, loop_tiles = get_loop_info(position, direction, pipe_map)
-    enclosed_tiles = set()
+    start_replacement, loop_tiles = get_loop_info(position, start_direction, direction, pipe_map)
+    _, start_y = start_pos
+    pipe_map[start_y] = pipe_map[start_y].replace('S', start_replacement)
 
-    while pipe_map[position[1]][position[0]] != 'S':
-        inside_dir = rotate(direction, clockwise=is_clockwise)
-        x, y = position
-        rhs_dx, rhs_dy = inside_dir.value
-        within_bounds = 0 <= y+rhs_dy < height and 0 <= x+rhs_dx < width
-
-        if (within_bounds and (x+rhs_dx, y+rhs_dy) not in loop_tiles
-                and (x+rhs_dx, y+rhs_dy) not in enclosed_tiles):
-            tiles_in_segment = flood_fill((x+rhs_dx, y+rhs_dy), pipe_map, loop_tiles)
-            enclosed_tiles |= tiles_in_segment
-
-        position, direction = move(position, direction, pipe_map)
+    intersections = [ray_cast(row, pipe_map, loop_tiles) for row in range(height)]
+    enclosed_tiles = [(x, y) for y in range(height) for x in range(width)
+                      if (x, y) not in loop_tiles and intersections[y][x] % 2 == 1]
 
     print(len(enclosed_tiles))
 
