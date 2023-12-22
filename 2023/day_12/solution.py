@@ -1,82 +1,37 @@
 import sys
+from functools import cache
 
 
-def get_groups(springs: str) -> list[tuple[int]]:
-    groups = []
-    group_start_idx = None
-    for i in range(len(springs)):
-        if springs[i] in '#?':
-            if group_start_idx is None:
-                group_start_idx = i
-        else:
-            if group_start_idx is not None:
-                groups.append((group_start_idx, i))
-                group_start_idx = None
-
-    if group_start_idx is not None:
-        groups.append((group_start_idx, i+1))
-
-    return groups
-
-
-def parse_row(spring_row: str, unfold: bool = False) -> tuple[str, list[int]]:
+def parse_row(spring_row: str, unfold: bool = False) -> tuple[str, tuple[int]]:
     springs_part, sizes_part = spring_row.split()
     if unfold:
         springs_part = '?'.join(springs_part for _ in range(5))
         sizes_part = ','.join(sizes_part for _ in range(5))
-    return springs_part, [int(s) for s in sizes_part.split(',')]
+    return springs_part, tuple(int(s) for s in sizes_part.split(','))
 
 
-def is_consistent_up_to(
+@cache
+def get_num_arrangements(
         spring_conditions: str,
-        target_group_sizes: list[int],
-        idx: int) -> bool:
-    '''
-    is_consistent('.#.#.[...]', [1, 3, 1, 6]) -> False
-    is_consistent('#??.[...]', [3]) -> True
-    '''
-    groups = get_groups(spring_conditions)
-    if spring_conditions.count('#') > sum(target_group_sizes):
-        return False
-    if spring_conditions.count('?') + spring_conditions.count('#') < sum(target_group_sizes):
-        return False
+        group_sizes: tuple[int]) -> int:
 
-    for i in range(min(len(groups), len(target_group_sizes))):
-        group_start, group_end = groups[i]
-        if group_start >= idx:
-            continue
+    if not group_sizes:
+        return 0 if '#' in spring_conditions else 1
+    if not spring_conditions:
+        return 1 if not group_sizes else 0
 
-        if group_end-group_start < target_group_sizes[i]:
-            return False
+    total_num = 0
+    if spring_conditions[0] in '.?':
+        total_num += get_num_arrangements(spring_conditions[1:], group_sizes)
 
-        elif (spring_conditions[group_start:group_end].count('#') > target_group_sizes[i]
-              and spring_conditions[group_start:group_end].count('?') == 0):
-            return False
+    if spring_conditions[0] in '#?':
+        target = group_sizes[0]
+        if (target <= len(spring_conditions)
+            and '.' not in spring_conditions[:target]
+                and (target == len(spring_conditions) or spring_conditions[target] != '#')):
+            total_num += get_num_arrangements(spring_conditions[target+1:], group_sizes[1:])
 
-    return True
-
-
-def solve(
-        spring_conditions: str,
-        target_group_sizes: list[int],
-        possible: list[str]) -> str:
-
-    first_unknown_idx = spring_conditions.find('?')
-
-    if first_unknown_idx == -1:
-        first_unknown_idx = len(spring_conditions)
-
-    if not is_consistent_up_to(spring_conditions, target_group_sizes, first_unknown_idx):
-        return False
-
-    if '?' not in spring_conditions:
-        return spring_conditions
-
-    if (operational := solve(spring_conditions.replace('?', '.', 1), target_group_sizes, possible)):
-        possible.append(operational)
-
-    if (damaged := solve(spring_conditions.replace('?', '#', 1), target_group_sizes, possible)):
-        possible.append(damaged)
+    return total_num
 
 
 def main():
@@ -85,16 +40,8 @@ def main():
 
     with open(filename) as spring_conditions_file:
         for spring_row in spring_conditions_file:
-            spring_conditions, target_group_sizes = parse_row(spring_row)
-            possible = []
-            solve(spring_conditions, target_group_sizes, possible)
-            orig = len(possible)
-            add_to_start = spring_conditions[-1] == '.'
-            with_extra_unknown = '?' + spring_conditions if add_to_start else spring_conditions  +'?'
-            possible_extra = []
-            solve(with_extra_unknown, target_group_sizes, possible_extra)
-            g = orig * len(possible_extra) ** 4
-            arrangement_count_sum += g
+            spring_conditions, target_group_sizes = parse_row(spring_row, unfold=True)
+            arrangement_count_sum += get_num_arrangements(spring_conditions, target_group_sizes)
 
     print(arrangement_count_sum)
 
