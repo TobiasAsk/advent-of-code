@@ -53,27 +53,25 @@ def main():
         rolling_rocks, static_rocks, dimensions = parse_rock_map(map_file.read().splitlines())
 
     target_num_cycles = 1000000000
-    rock_hashes = set()
+    rock_hashes = []
     cycles = 0
     skipped = False
-    print_rocks(rolling_rocks, static_rocks, dimensions)
 
     while cycles < target_num_cycles:
         for direction in TILT_DIRECTIONS:
             tilt(rolling_rocks, static_rocks, direction, dimensions)
-            print_rocks(rolling_rocks, static_rocks, dimensions)
 
         cycles += 1
+        rock_hash = hash(tuple(sorted(rolling_rocks)))
 
-        rock_hash = hash(tuple(rolling_rocks))
-        if rock_hash in rock_hashes and not skipped:
-            num_skipped_cycles = (target_num_cycles - cycles) // cycles
-            cycles += num_skipped_cycles * cycles
+        if (not skipped and rock_hash in rock_hashes):
+            cycle_length = cycles - rock_hashes.index(rock_hash) - 1
+            num_skipped_cycles = (target_num_cycles - cycles) // cycle_length
+            cycles += num_skipped_cycles * cycle_length
             skipped = True
 
-        rock_hashes.add(rock_hash)
+        rock_hashes.append(rock_hash)
 
-    print_rocks(rolling_rocks, static_rocks, dimensions)
     load = calculate_load(rolling_rocks, dimensions[0])
     print(load)
 
