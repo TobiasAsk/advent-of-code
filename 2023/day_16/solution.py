@@ -55,10 +55,6 @@ def main():
     height, width = len(contraption_layout), len(contraption_layout[0])
     start_position = (0, 0)
     start_direction = (1, 0)
-
-    if contraption_layout[0][0] != '.':
-        start_direction, _ = get_new_direction(start_direction, contraption_layout[0][0])
-
     energized_tiles = {start_position}
     beam_starts = set()
     beams = [(start_position, start_direction)]
@@ -66,23 +62,20 @@ def main():
     while beams:
         position, direction = beams.pop()
         beam_starts.add((position, direction))
-        dx, dy = direction
         x, y = position
+        dx, dy = direction
         split = False
 
-        while 0 <= x+dx < width and 0 <= y+dy < height and not split:
-            x += dx
-            y += dy
+        while 0 <= x < width and 0 <= y < height and not split:
             energized_tiles.add((x, y))
-
-            tile = contraption_layout[y][x]
-            new_direction, split = get_new_direction((dx, dy), tile)
-
+            new_direction, split = get_new_direction((dx, dy), contraption_layout[y][x])
             if split:
-                beams.extend(((x, y), split_dir) for split_dir in new_direction
-                             if ((x, y), split_dir) not in beam_starts)
+                beams.extend(((x+split_dir[0], y+split_dir[1]), split_dir) for split_dir in new_direction
+                             if ((x+split_dir[0], y+split_dir[1]), split_dir) not in beam_starts)
             else:
                 dx, dy = new_direction
+                x += dx
+                y += dy
 
     print(len(energized_tiles))
 
