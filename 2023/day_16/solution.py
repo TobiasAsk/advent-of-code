@@ -47,14 +47,8 @@ def get_new_direction(direction: tuple[int], tile: str) -> tuple[tuple[int], boo
         return new_dir, True
 
 
-def main():
-    filename = sys.argv[1]
-    with open(filename) as contraption_layout_file:
-        contraption_layout = contraption_layout_file.read().splitlines()
-
+def get_num_energized_tiles(start_position, start_direction, contraption_layout):
     height, width = len(contraption_layout), len(contraption_layout[0])
-    start_position = (0, 0)
-    start_direction = (1, 0)
     energized_tiles = {start_position}
     beam_starts = set()
     beams = [(start_position, start_direction)]
@@ -77,7 +71,32 @@ def main():
                 x += dx
                 y += dy
 
-    print(len(energized_tiles))
+    return len(energized_tiles)
+
+
+def main():
+    filename = sys.argv[1]
+    with open(filename) as contraption_layout_file:
+        contraption_layout = contraption_layout_file.read().splitlines()
+
+    height, width = len(contraption_layout), len(contraption_layout[0])
+    max_num_energized_tiles = 0
+
+    for x in range(width):
+        for y, dy in [(0, 1), (height-1, -1)]:
+            start_position = (x, y)
+            start_direction = (0, dy)
+            num_energized = get_num_energized_tiles(start_position, start_direction, contraption_layout)
+            max_num_energized_tiles = max(max_num_energized_tiles, num_energized)
+
+    for y in range(height):
+        for x, dx in [(0, 1), (width-1, -1)]:
+            start_position = (x, y)
+            start_direction = (dx, 0)
+            num_energized = get_num_energized_tiles(start_position, start_direction, contraption_layout)
+            max_num_energized_tiles = max(max_num_energized_tiles, num_energized)
+
+    print(max_num_energized_tiles)
 
 
 if __name__ == '__main__':
