@@ -12,9 +12,10 @@ DIRECTIONS = [
 
 @dataclass
 class LavaCitySearchNode:
-    direction: tuple[int]  # (east|south etc., num_consecutive)
+    heading: int
     lava_map: list[list[int]]
     crucible_position: tuple[int]
+    num_consecutive_straight_moves: int
 
     distance_from_root: int = 0  # g
     estimated_distance_to_goal: int = 0  # h
@@ -31,24 +32,29 @@ class LavaCitySearchNode:
         self.estimated_distance_to_goal = goal_x - x + goal_y - y
 
     def __hash__(self) -> int:
-        return hash(self.direction + self.crucible_position)
+        return hash((self.heading, self.num_consecutive_straight_moves) + self.crucible_position)
 
     def get_successors(self) -> list:
         moves = []
-        current_dir_idx, num_consecutive = self.direction
         x, y = self.crucible_position
         height, width = len(self.lava_map), len(self.lava_map[0])
 
         for i in [-1, 0, 1]:
-            next_dir_idx = (current_dir_idx+i) % len(DIRECTIONS)
+            next_dir_idx = (self.heading+i) % len(DIRECTIONS)
             next_dir = DIRECTIONS[next_dir_idx]
             dx, dy = next_dir
             if 0 <= x+dx < width and 0 <= y+dy < height:
-                if next_dir_idx != current_dir_idx or (next_dir_idx == current_dir_idx and num_consecutive < 3):
+                if (next_dir_idx != self.heading or
+                        (next_dir_idx == self.heading and self.num_consecutive_straight_moves < 3)):
+
+                    next_num_consecutive = (1 if next_dir_idx != self.heading
+                                            else self.num_consecutive_straight_moves+1)
+
                     successor_node = LavaCitySearchNode(
-                        direction=(next_dir_idx, 1 if next_dir_idx != current_dir_idx else num_consecutive+1),
+                        heading=next_dir_idx,
                         lava_map=self.lava_map,
-                        crucible_position=(x+dx, y+dy)
+                        crucible_position=(x+dx, y+dy),
+                        num_consecutive_straight_moves=next_num_consecutive
                     )
                     moves.append(successor_node)
 
@@ -75,10 +81,13 @@ def attach_and_eval(child: LavaCitySearchNode, parent: LavaCitySearchNode, heat_
 
 
 def get_initial_node(lava_map):
-    start_pos = (0, 0)
-    start_dir = (0, 0)
 
-    initial_node = LavaCitySearchNode(start_dir, lava_map, start_pos)
+    initial_node = LavaCitySearchNode(
+        heading=0,
+        lava_map=lava_map,
+        crucible_position=(0, 0),
+        num_consecutive_straight_moves=0)
+
     initial_node.distance_from_root = 0
     initial_node.compute_heuristic()
     initial_node.expected_cost = initial_node.estimated_distance_to_goal
