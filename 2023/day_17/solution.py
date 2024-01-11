@@ -40,18 +40,24 @@ class LavaCitySearchNode:
         height, width = len(self.lava_map), len(self.lava_map[0])
 
         for i in [-1, 0, 1]:
-            next_dir_idx = (self.heading+i) % len(DIRECTIONS)
-            next_dir = DIRECTIONS[next_dir_idx]
+            next_heading = (self.heading+i) % len(DIRECTIONS)
+            next_dir = DIRECTIONS[next_heading]
             dx, dy = next_dir
+            can_move = False
             if 0 <= x+dx < width and 0 <= y+dy < height:
-                if (next_dir_idx != self.heading or
-                        (next_dir_idx == self.heading and self.num_consecutive_straight_moves < 3)):
+                if (x+dx, y+dy) == (width-1, height-1):
+                    can_move = self.num_consecutive_straight_moves >= 3 and self.heading == next_heading
+                elif next_heading != self.heading:
+                    can_move = self.num_consecutive_straight_moves >= 4
+                else:
+                    can_move = self.num_consecutive_straight_moves < 10
 
-                    next_num_consecutive = (1 if next_dir_idx != self.heading
+                if can_move:
+                    next_num_consecutive = (1 if next_heading != self.heading
                                             else self.num_consecutive_straight_moves+1)
 
                     successor_node = LavaCitySearchNode(
-                        heading=next_dir_idx,
+                        heading=next_heading,
                         lava_map=self.lava_map,
                         crucible_position=(x+dx, y+dy),
                         num_consecutive_straight_moves=next_num_consecutive
@@ -83,7 +89,7 @@ def attach_and_eval(child: LavaCitySearchNode, parent: LavaCitySearchNode, heat_
 def get_initial_node(lava_map):
 
     initial_node = LavaCitySearchNode(
-        heading=0,
+        heading=1,
         lava_map=lava_map,
         crucible_position=(0, 0),
         num_consecutive_straight_moves=0)
