@@ -1,5 +1,7 @@
 import sys
+import re
 
+CODE_PATTERN = re.compile(r'\(#([a-z0-9]*)\)')
 
 DIRECTIONS = {
     'R': (1, 0),
@@ -9,87 +11,35 @@ DIRECTIONS = {
 }
 
 
-def ray_cast(row: int, lagoon_map: list[str]):
-    # outside == even, inside == odd
-    width = len(lagoon_map[0])
-    num_intersections = [0 for _ in range(width)]
-    intersection_count = 0
+def get_lagoon_area(trench: list[tuple[int]]):
+    area = 0
 
-    for x in range(1, width):
-        if lagoon_map[row][x-1:x+1] == '#.':
-            intersection_count += 1
-        num_intersections[x] = intersection_count
-
-    return num_intersections
-
-
-def get_lagoon_map(trench):
-    width = max(x for x, _ in trench) + 1
-    height = max(y for _, y in trench) + 1
-    lagoon_map = []
-    for y in range(height):
-        lagoon_map.append(''.join('#' if (x, y) in trench else '.'
-                                  for x in range(width)))
-    return lagoon_map
-
-
-def dig_from_point(starting_point: tuple[int], trench: set[tuple[int]]):
-    lagoon = set()
-    point_queue = [starting_point]
-
-    while point_queue:
-        point = point_queue.pop()
-        if point not in lagoon:
-            lagoon.add(point)
-            x, y = point
-
-            for dx, dy in DIRECTIONS.values():
-                neighbor_point = (x+dx, y+dy)
-                if neighbor_point not in trench and neighbor_point not in lagoon:
-                    point_queue.append(neighbor_point)
-
-    return lagoon | trench
-
-
-def get_offset_trench(trench):
-    width_offset = abs(min(x for x, _ in trench))
-    height_offset = abs(min(y for _, y in trench))
-    return {(x+width_offset, y+height_offset) for x, y in trench}
-
-
-def dig_lagoon(trench):
-    trench = get_offset_trench(trench)
-    lagoon_map = get_lagoon_map(trench)
-    height = len(lagoon_map)
-    width = len(lagoon_map[0])
-    num_intersections = [ray_cast(row, lagoon_map) for row in range(height)]
-    point_inside = next((x, y) for x in range(width)
-                        for y in range(height) if num_intersections[y][x] % 2 == 1 and (x, y) not in trench)
-    return dig_from_point(point_inside, trench)
+    for i in range(-1, len(trench)-1):
+        x, y = trench[i]
+        other_x, other_y = trench[i+1]
+        area += x * other_y - y * other_x
+    return abs(area // 2)
 
 
 def main():
     filename = sys.argv[1]
     position = (0, 0)
-    trench = {position}
-    edge_colors = {}
+    trench = [position]
+    lagoon_area = 0
 
     with open(filename) as dig_plan_file:
         for line in dig_plan_file:
+            instruction_code = CODE_PATTERN.search(line.strip()).group(1)
+            num_meters = int(f'0x{instruction_code[:-1]}', 16)
+            lagoon_area += num_meters / 2
+            direction = 'RDLU'[int(instruction_code[-1])]
             x, y = position
-            direction, num_meters, color = line.split()
             dx, dy = DIRECTIONS[direction]
+            position = (x+dx*num_meters, y+dy*num_meters)
+            trench.append(position)
 
-            for _ in range(int(num_meters)):
-                x += dx
-                y += dy
-                trench.add((x, y))
-                edge_colors[(x, y)] = color
-
-            position = (x, y)
-
-    lagoon = dig_lagoon(trench)
-    print(len(lagoon))
+    lagoon_area += get_lagoon_area(trench[:-1]) + 1
+    print(int(lagoon_area))
 
 
 if __name__ == '__main__':
