@@ -1,44 +1,69 @@
+"""
+Represented as a multigraph of workflows with the rules as the edges between them.
+I struggled with:
+ - wrapping my head around the multiple edges part (hence multigraph). Easy to code (double loop) but hard to realize!
+ - handling multiple rules on the same variable ("rating")
+ - handling irrelevant rules with looser restrictions than existing bounds
+"""
+
 import sys
-from dataclasses import dataclass, field
 import re
+from collections import namedtuple, defaultdict
+from functools import reduce
+from operator import mul
+import pygraphviz as pgv
 
 RULE_PATTERN = re.compile(r'([xmas])([<>])(\d+):(\w+)')
 WORKFLOW_PATTERN = re.compile(r'(\w+)\{([\w\W]+)\}')
-RATING_PATTERN = re.compile(r'\w=\d+')
+
+Rule = namedtuple('Rule', ['rating', 'limit', 'is_upper_limit'])
 
 
-@dataclass
-class Workflow:
-    name: str
-    rules: list = field(default_factory=list)
-
-    def get_next_workflow(self, part: dict):
-        for rule in self.rules:
-            if (next_workflow := rule(part)):
-                return next_workflow
+def opposite(rule: Rule) -> Rule:
+    return Rule(
+        rating=rule.rating,
+        limit=rule.limit-1 if rule.is_upper_limit else rule.limit+1,
+        is_upper_limit=not rule.is_upper_limit)
 
 
-def parse_rule(rule: str):
-    if (pattern_match := RULE_PATTERN.search(rule)):
-        category, operator, limit, next_workflow = pattern_match.groups()
-        if operator == '>':
-            return lambda part: next_workflow if part[category] > int(limit) else None
-        else:
-            return lambda part: next_workflow if part[category] < int(limit) else None
-    else:
-        return lambda _: rule
+def apply_rules(rules: list[Rule], ratings):
+    new_ratings = dict(ratings)
+    for rule in rules:
+        old_lower, old_upper = new_ratings[rule.rating]
+        new_range = (old_lower, min(rule.limit-1, old_upper)
+                     ) if rule.is_upper_limit else (max(rule.limit+1, old_lower), old_upper)
+        new_ratings[rule.rating] = new_range
+    return new_ratings
 
 
-def parse_workflow(raw_workflow) -> Workflow:
-    name, raw_rules = WORKFLOW_PATTERN.search(raw_workflow).groups()
-    parsed_rules = [parse_rule(r) for r in raw_rules.split(',')]
-    return Workflow(name, parsed_rules)
+def visit_workflow(workflow: str, workflow_moves: dict[str, dict], ratings):
+    if workflow == 'A':
+        return reduce(mul, (u-l+1 for l, u in ratings.values()))
+
+    elif workflow == 'R':
+        return 0
+
+    total_num_combinations = 0
+    for successor_workflow, all_rules in workflow_moves[workflow].items():
+        for rules in all_rules:
+            new_ratings = apply_rules(rules, ratings)
+            total_num_combinations += visit_workflow(successor_workflow, workflow_moves, new_ratings)
+    return total_num_combinations
 
 
-def parse_part(raw_part: str) -> dict:
-    ratings = RATING_PATTERN.findall(raw_part)
-    pairs = [r.split('=') for r in ratings]
-    return {c: int(r) for c, r in pairs}
+def create_label(rules: list[Rule]):
+    return '&'.join(f'{rule.rating}{"<" if rule.is_upper_limit else ">"}{rule.limit}'
+                    for rule in rules)
+
+
+def test():
+    rule = Rule(
+        rating='x',
+        limit=500,
+        is_upper_limit=False)
+
+    ratings = {'x': (2166, 4000)}
+    apply_rules([rule], ratings)
 
 
 def main():
@@ -46,25 +71,53 @@ def main():
     with open(filename) as workflows_and_parts_file:
         raw_workflows, raw_parts = tuple(p.splitlines() for p in workflows_and_parts_file.read().split('\n\n'))
 
-    workflows: dict[str, Workflow] = {}
+    workflow_graph = pgv.AGraph(directed=True)
+    workflow_moves = {}
     for raw_workflow in raw_workflows:
-        workflow = parse_workflow(raw_workflow)
-        workflows[workflow.name] = workflow
+        name, raw_rules = WORKFLOW_PATTERN.search(raw_workflow).groups()
+        workflow_moves[name] = defaultdict(list)
+        previous_rules = []
+        workflow_graph.add_node(name)
 
-    parts = [parse_part(p) for p in raw_parts]
-    rating_sum = 0
+        for raw_rule in raw_rules.split(','):
+            if (pattern_match := RULE_PATTERN.search(raw_rule)):
+                rating, operator, limit, next_workflow = pattern_match.groups()
 
-    for part in parts:
-        current_workflow = workflows['in']
-        while current_workflow:
-            next_name = current_workflow.get_next_workflow(part)
-            current_workflow = workflows.get(next_name)
+                rule = Rule(
+                    rating=rating,
+                    limit=int(limit),
+                    is_upper_limit=operator == '<')
 
-        if next_name == 'A':
-            rating_sum += sum(r for r in part.values())
+                # label = create_label([rule] + [opposite(r) for r in previous_rules])
+                # workflow_graph.add_edge(name, next_workflow, label=label)
 
-    print(rating_sum)
+                rules = [rule] + [opposite(preceding_rule) for preceding_rule in previous_rules]
+                workflow_moves[name][next_workflow].append(rules)
+
+                previous_rules.append(rule)
+
+            else:
+                next_workflow = raw_rule
+                rules = [opposite(preceding_rule) for preceding_rule in previous_rules]
+                workflow_moves[name][next_workflow].append(rules)
+
+                # label = create_label([opposite(r) for r in previous_rules])
+                # workflow_graph.add_edge(name, raw_rule, label=label)
+
+    # workflow_graph.layout(prog='dot')
+    # workflow_graph.draw('graph.png')
+
+    ratings = {
+        'x': (1, 4000),
+        'm': (1, 4000),
+        'a': (1, 4000),
+        's': (1, 4000)
+    }
+
+    num_combinations = visit_workflow('in', workflow_moves, ratings)
+    print(num_combinations)
 
 
 if __name__ == '__main__':
+    test()
     main()
