@@ -1,6 +1,6 @@
 import sys
-from functools import cache, reduce
-from collections import defaultdict
+from functools import cache
+from collections import defaultdict, deque
 
 DIRECTIONS = [
     (0, -1),
@@ -17,27 +17,33 @@ class GardenMap:
         self.height = len(map_lines)
         self.starting_position = [(x, y) for y in range(self.height) for x in range(self.width) if
                                   self.map_lines[y][x] == 'S'][0]
-        self.seen_at_steps = defaultdict(set)
 
-    @cache
     def get_num_plots_within_reach(
             self, position: tuple[int],
-            num_remaining_steps: int) -> frozenset[tuple[int]]:
+            num_steps: int) -> int:
 
-        if num_remaining_steps == 0:
-            return 1
+        queue = deque([position])
+        distance = {position: 0}
+        steps = 0
+        seen_at = defaultdict(set)
+        num_plots_from = [0] * (num_steps+2)
 
-        x, y = position
-        available_plots = []
-        for dx, dy in DIRECTIONS:
-            if (0 <= x+dx < self.width and 0 <= y+dy < self.height and
-                    self.map_lines[y+dy][x+dx] in ['.', 'S']) and not (x+dx, y+dy) in self.seen_at_steps[num_remaining_steps-1]:
+        while steps < num_steps:
+            x, y = queue.popleft()
+            steps = distance[(x, y)]
 
-                self.seen_at_steps[num_remaining_steps-1].add((x+dx, y+dy))
-                available_plots.append((x+dx, y+dy))
+            for dx, dy in DIRECTIONS:
+                new_x, new_y = x+dx, y+dy
 
-        return sum(self.get_num_plots_within_reach(p, num_remaining_steps-1)
-                   for p in available_plots)
+                if (0 <= new_x < self.width and 0 <= new_y < self.height and
+                        self.map_lines[new_y][new_x] in ['.', 'S'] and (new_x, new_y) not in seen_at[steps]):
+
+                    queue.append((new_x, new_y))
+                    distance[(new_x, new_y)] = steps + 1
+                    num_plots_from[steps+1] += 1
+                    seen_at[steps].add((new_x, new_y))
+
+        return num_plots_from[num_steps]
 
 
 def main():
