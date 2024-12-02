@@ -2,11 +2,7 @@ import sys
 
 
 def is_safe_remove_one(levels: list[int]) -> bool:
-    for i in range(len(levels)):
-        new_levels = levels[:i] + levels[i+1:]
-        if is_safe(new_levels):
-            return True
-    return False
+    return any(is_safe(levels[:i] + levels[i+1:]) for i in range(len(levels)))
 
 
 def is_safe(levels: list[int]) -> bool:
