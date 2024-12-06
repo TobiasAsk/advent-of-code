@@ -1,6 +1,6 @@
 #!/bin/bash
 day_num=$1
-day_dir=2023/day_${day_num}
+day_dir=2024/day_${day_num}
 
 
 if ! [ -d day_dir ]; then
