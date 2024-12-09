@@ -1,9 +1,8 @@
 '''
 Very much thought that topological sorting was the way to go here,
 but to my disappointment the graph has cycles, which took me some time to
-figure out. Instead, the approach to check whether any number appears before it
-should, i.e., that it is listed as a successor of a succeeding number in the
-sequence.
+figure out. Instead, the approach is to check whether any number appears before it
+should, i.e., that it is listed as a successor of the next number in the sequence.
 '''
 
 import sys
@@ -76,10 +75,10 @@ def main():
     mid_page_sum = 0
     for update in updates:
         numbers = list(map(int, update.split(',')))
-        for i in range(len(numbers)):
+        for i in range(len(numbers)-1):
             num = numbers[i]
-            other_nums = numbers[i+1:]
-            if any(num in graph[n] for n in other_nums):
+            next_num = numbers[i+1]
+            if num in graph[next_num]:
                 break
         else:
             mid_page_sum += numbers[len(numbers)//2]
