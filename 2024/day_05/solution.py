@@ -63,6 +63,21 @@ def make_graph(ordering_rules: list[str]) -> tuple[dict[int, list[int]], set[int
 
 #     return i == n
 
+def fix_order(numbers: list[int], graph: dict) -> list[int]:
+    ordered_nums = list(numbers)
+
+    found_offender = True
+    while found_offender:
+        found_offender = False
+        for i in range(len(numbers)-1):
+            num = ordered_nums[i]
+            next_num = ordered_nums[i+1]
+            if num in graph[next_num]:
+                ordered_nums[i], ordered_nums[i+1] = ordered_nums[i+1], ordered_nums[i]
+                found_offender = True
+
+    return ordered_nums
+
 
 def main():
     filename = sys.argv[1]
@@ -79,9 +94,9 @@ def main():
             num = numbers[i]
             next_num = numbers[i+1]
             if num in graph[next_num]:
+                ordered_nums = fix_order(numbers, graph)
+                mid_page_sum += ordered_nums[len(ordered_nums)//2]
                 break
-        else:
-            mid_page_sum += numbers[len(numbers)//2]
 
     print(mid_page_sum)
 
