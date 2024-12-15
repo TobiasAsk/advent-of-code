@@ -32,21 +32,32 @@ def main():
     antennas = get_antenna_locations(antenna_map)
     antinode_positions = set()
     for antenna_locations in antennas.values():
+        antinode_positions.update(antenna_locations)
         for loc, other_loc in it.combinations(antenna_locations, 2):
             x, y = loc
             other_x, other_y = other_loc
             dx, dy = x-other_x, y-other_y
+            mult = 1
+            first_dir_in_bounds, second_dir_in_bounds = True, True
 
-            first_antinode_x, first_antinode_y = x+dx, y+dy
-            second_antinode_x, second_antinode_y = other_x-dx, other_y-dy
+            while first_dir_in_bounds or second_dir_in_bounds:
+                first_antinode_x, first_antinode_y = x+dx*mult, y+dy*mult
+                second_antinode_x, second_antinode_y = other_x-dx*mult, other_y-dy*mult
 
-            if 0 <= first_antinode_x < width and 0 <= first_antinode_y < height:
-                antinode_positions.add((first_antinode_x, first_antinode_y))
+                if 0 <= first_antinode_x < width and 0 <= first_antinode_y < height:
+                    antinode_positions.add((first_antinode_x, first_antinode_y))
+                else:
+                    first_dir_in_bounds = False
 
-            if 0 <= second_antinode_x < width and 0 <= second_antinode_y < height:
-                antinode_positions.add((second_antinode_x, second_antinode_y))
+                if 0 <= second_antinode_x < width and 0 <= second_antinode_y < height:
+                    antinode_positions.add((second_antinode_x, second_antinode_y))
+                else:
+                    second_dir_in_bounds = False
+
+                mult += 1
 
     print(len(antinode_positions))
+    # print_map(antenna_map, antinode_positions)
 
 
 if __name__ == '__main__':
