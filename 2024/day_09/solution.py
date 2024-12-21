@@ -2,8 +2,9 @@ import sys
 
 
 class FreeSpaceBlock:
-    def __init__(self, pos):
-        self.pos = pos
+    def __init__(self, position, length):
+        self.position = position
+        self.length = length
         self.next_free_space_block = None
 
 
@@ -12,8 +13,8 @@ class FreeSpaceList:
         self.head = None
         self.tail = None
 
-    def add(self, free_block):
-        new_node = FreeSpaceBlock(free_block)
+    def add(self, pos, len):
+        new_node = FreeSpaceBlock(pos, len)
         if self.head is None:
             self.head = new_node
             self.tail = new_node
@@ -22,11 +23,15 @@ class FreeSpaceList:
         self.tail.next_free_space_block = new_node
         self.tail = new_node
 
-    def remove_first_node(self):
-        if (self.head == None):
+    def remove_block(self, block: FreeSpaceBlock):
+        if self.head == block:
+            self.head = block.next_free_space_block
             return
 
-        self.head = self.head.next_free_space_block
+        curr_block = self.head
+        while curr_block.next_free_space_block != block:
+            curr_block = curr_block.next_free_space_block
+        curr_block.next_free_space_block = block.next_free_space_block
 
 
 def get_files(disk_map):
@@ -35,19 +40,20 @@ def get_files(disk_map):
     file_id = 0
     position = 0
     is_file = True
+    initial = {}
 
     for length in disk_map:
         if is_file:
             file_positions |= {position+i: file_id for i in range(length)}
+            initial[file_id] = list(range(position, position+length))
             file_id += 1
         else:
-            for i in range(length):
-                free_space_list.add(position+i)
+            free_space_list.add(position, length)
 
         is_file = not is_file
         position += length
 
-    return file_positions, free_space_list
+    return file_positions, free_space_list, initial
 
 
 def main():
@@ -55,18 +61,29 @@ def main():
     with open(filename) as input_file:
         disk_map = map(int, list(input_file.readline().strip()))
 
-    file_positions, free_space_list = get_files(disk_map)
-    initial_positions = list(file_positions.keys())
+    file_positions, free_space_list, initial = get_files(disk_map)
+    file_ids = list(set(file_positions.values()))
 
-    while True:
-        end_key = initial_positions.pop()
-        end_block = file_positions[end_key]
-        new_pos = free_space_list.head.pos
-        if new_pos > end_key:
-            break
-        file_positions[new_pos] = end_block
-        free_space_list.remove_first_node()
-        del file_positions[end_key]
+    while file_ids:
+        file_id = file_ids.pop()
+        positions = initial[file_id]
+
+        free_block = free_space_list.head
+        while free_block != None:
+            if free_block.position < positions[0] and free_block.length >= len(positions):
+                for i in range(len(positions)):
+                    new_pos = free_block.position + i
+                    file_positions[new_pos] = file_id
+                    del file_positions[positions[i]]
+
+                if free_block.length == len(positions):
+                    free_space_list.remove_block(free_block)
+                else:
+                    free_block.position += len(positions)
+                    free_block.length -= len(positions)
+                break
+
+            free_block = free_block.next_free_space_block
 
     checksum = 0
     for pos, id in file_positions.items():
