@@ -15,47 +15,46 @@ def get_positions(top_map, char):
 
 
 def get_peaks(top_map):
-    return get_positions(top_map, 9)
+    return get_positions(top_map, '9')
 
 
 def get_trailheads(top_map):
-    return get_positions(top_map, 0)
+    return get_positions(top_map, '0')
 
 
-def can_reach(top_map: list[str], peak_position: tuple[int], current_position: tuple[int]) -> bool:
+def get_num_trails(top_map: list[str], peak_position: tuple[int], current_position: tuple[int]) -> int:
     if peak_position == current_position:
-        return True
+        return 1
 
     height, width = len(top_map), len(top_map[0])
     curr_x, curr_y = current_position
+    num_trails = 0
+
     for dx, dy in DIRECTIONS:
         new_x, new_y = curr_x+dx, curr_y+dy
         if (0 <= new_x < width and 0 <= new_y < height and
-                top_map[new_y][new_x] - top_map[curr_y][curr_x] == 1):
+                top_map[new_y][new_x] != '.' and
+                int(top_map[new_y][new_x]) - int(top_map[curr_y][curr_x]) == 1):
 
-            if can_reach(top_map, peak_position, (new_x, new_y)):
-                return True
+            num_trails += get_num_trails(top_map, peak_position, (new_x, new_y))
 
-    return False
+    return num_trails
 
 
 def main():
     filename = sys.argv[1]
-    top_map = []
     with open(filename) as map_file:
-        for row in map_file:
-            top_map.append(list(map(int, row.strip())))
+        top_map = map_file.read().splitlines()
 
     trailheads = get_trailheads(top_map)
     peaks = get_peaks(top_map)
-    trailhead_score_sum = 0
+    trailhead_rating_sum = 0
 
     for trailhead in trailheads:
         for peak in peaks:
-            if can_reach(top_map, peak, trailhead):
-                trailhead_score_sum += 1
+            trailhead_rating_sum += get_num_trails(top_map, peak, trailhead)
 
-    print(trailhead_score_sum)
+    print(trailhead_rating_sum)
 
 
 if __name__ == '__main__':
