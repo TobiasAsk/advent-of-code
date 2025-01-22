@@ -41,12 +41,13 @@ def get_num_sides(region: set[tuple[int]]) -> int:
 def get_region(
         region_plot: tuple[int],
         covered_plots: set[tuple[int]],
-        garden_plots: list[str],
-        plant_types: str) -> set[tuple[int]]:
+        garden_plots: list[str]) -> set[tuple[int]]:
 
     region = set()
     plot_queue = [region_plot]
     height, width = len(garden_plots), len(garden_plots[0])
+    x, y = region_plot
+    plant_type = garden_plots[y][x]
 
     while plot_queue:
         plot = plot_queue.pop()
@@ -58,7 +59,7 @@ def get_region(
         for dx, dy in DIRECTIONS:
             new_x, new_y = x+dx, y+dy
             if (0 <= new_x < width and 0 <= new_y < height and
-                garden_plots[new_y][new_x] in plant_types and
+                garden_plots[new_y][new_x] == plant_type and
                     (new_x, new_y) not in covered_plots | region):
                 plot_queue.append((new_x, new_y))
 
@@ -77,7 +78,7 @@ def main():
     for y in range(height):
         for x in range(width):
             if (x, y) not in covered_plots:
-                region = get_region((x, y), covered_plots, garden_plots, garden_plots[y][x])
+                region = get_region((x, y), covered_plots, garden_plots)
                 covered_plots |= region
                 num_sides = get_num_sides(region)
                 total_price += len(region) * num_sides
