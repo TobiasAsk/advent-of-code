@@ -6,7 +6,7 @@
     "configurations": [
         {
             "name": "Full input",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
@@ -17,9 +17,9 @@
         },
         {
             "name": "Example input",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
-            "program": "${file}",
+            "program": "${workspaceFolder}/${relativeFileDirname}/solution.py",
             "args": [
                 "${workspaceFolder}/${relativeFileDirname}/example_input.txt"
             ],
@@ -28,7 +28,7 @@
         },
         {
             "name": "Test input",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "program": "${file}",
             "args": [
