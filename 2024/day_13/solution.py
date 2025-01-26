@@ -1,43 +1,14 @@
+'''System of two equations to solve. Just use numpy, but feels like cheating. Only looking
+for integer solutions, so needs a check using the rounded solution.
+'''
+
 import sys
-import functools
-import math
-from dataclasses import dataclass, field
 import re
+import numpy as np
 
 
 BUTTON_PATTERN = re.compile(r'Button [AB]: X\+(\d+), Y\+(\d+)')
 PRIZE_PATTERN = re.compile(r'Prize: X=(\d+), Y=(\d+)')
-
-
-@dataclass(frozen=True)
-class ClawMachine:
-    button_a_num_units: tuple[int]  # = field(hash=True)
-    button_b_num_units: tuple[int]  # = field(hash=True)
-    prize_location: tuple[int]
-
-    @functools.cache
-    def get_min_price(
-            self,
-            pos: tuple[int],
-            num_presses_left: tuple[int]):
-
-        if pos == self.prize_location:
-            return 0
-
-        if pos[0] > self.prize_location[0] or pos[1] > self.prize_location[1]:
-            return math.inf
-
-        press_a_option = 3 + self.get_min_price(
-            (pos[0]+self.button_a_num_units[0], pos[1]+self.button_a_num_units[1]),
-            (num_presses_left[0]-1, num_presses_left[1])
-        ) if num_presses_left[0] > 0 else math.inf
-
-        press_b_option = 1 + self.get_min_price(
-            (pos[0]+self.button_b_num_units[0], pos[1]+self.button_b_num_units[1]),
-            (num_presses_left[0], num_presses_left[1]-1)
-        ) if num_presses_left[1] > 0 else math.inf
-
-        return min(press_a_option, press_b_option)
 
 
 def main():
@@ -46,18 +17,23 @@ def main():
     min_price = 0
     with open(filename) as claw_machine_configs_file:
         for machine_config in claw_machine_configs_file.read().split('\n\n'):
-            button_units = BUTTON_PATTERN.findall(machine_config)
+            button_a, button_b = BUTTON_PATTERN.findall(machine_config)
             prize_location_coords = PRIZE_PATTERN.search(machine_config).groups()
-            machine = ClawMachine(
-                button_a_num_units=tuple(map(int, button_units[0])),
-                button_b_num_units=tuple(map(int, button_units[1])),
-                prize_location=tuple(map(int, prize_location_coords))
-            )
-            machine_min_price = machine.get_min_price(
-                pos=(0, 0),
-                num_presses_left=(100, 100)
-            )
-            min_price += machine_min_price if machine_min_price < math.inf else 0
+            coefficients = np.array([
+                [int(button_a[0]), int(button_b[0])],
+                [int(button_a[1]), int(button_b[1])]
+            ])
+            offset = 10000000000000
+            ordinate_values = np.array([
+                int(prize_location_coords[0])+offset,
+                int(prize_location_coords[1])+offset,
+            ])
+            solution = np.linalg.solve(a=coefficients, b=ordinate_values)
+
+            if all(np.round(solution[0])*coefficients[i][0] +
+                   np.round(solution[1])*coefficients[i][1] == ordinate_values[i]
+                   for i in range(2)):
+                min_price += 3*solution[0] + solution[1]
 
     print(min_price)
 
