@@ -1,6 +1,11 @@
+'''A variation of Dijkstra's algorithm where the queue is not filled with all the nodes initially, since
+the search nodes are (pos, heading) tuples which must be discovered during traversal. Also, for part 2,
+we need to find all the best paths instead of a single one, which requires some extra care when building the paths.'''
+
 import sys
 import heapq
 import math
+from collections import defaultdict
 
 DIRECTIONS = [
     (1, 0),
@@ -33,27 +38,60 @@ def get_next_positions(maze_map, pos, heading):
     return positions
 
 
-def get_lowest_score(maze_map: list[str], start_pos: tuple[int], end_pos: tuple[int]) -> int:
-    distance = {(start_pos, 0): 0}
-    frontier = [(0, (start_pos, 0))]
+def visit_rec(
+        pos_and_heading: tuple[tuple[int], int],
+        previous: dict,
+        tiles: set = set()):
+
+    if pos_and_heading not in previous:
+        return tiles
+
+    all_tiles = set()
+    tiles.add(pos_and_heading[0])
+    for other_ph in previous[pos_and_heading]:
+        all_tiles |= visit_rec(other_ph, previous, tiles)
+    return all_tiles
+
+
+def get_best_path(
+        maze_map: list[str],
+        start_pos: tuple[int],
+        end_pos: tuple[int]) -> list[tuple[int]]:
+
+    start_node = (start_pos, 0)
+    distance = {start_node: 0}
+    frontier = [(0, start_node)]
     expanded = set()
+    previous = defaultdict(list)
 
     while frontier:
-        dist_to_pos, (pos, heading) = heapq.heappop(frontier)
-        if pos == end_pos:
-            return dist_to_pos
+        dist, (pos, heading) = heapq.heappop(frontier)
+
+        if (pos, heading) in expanded:
+            continue
+
         expanded.add((pos, heading))
 
-        for next_pos, heading, cost in get_next_positions(maze_map, pos, heading):
-            distance_to_neighbor = dist_to_pos + cost
-            if distance_to_neighbor < distance.get((next_pos, heading), math.inf):
-                distance[(next_pos, heading)] = distance_to_neighbor
+        for next_pos, next_heading, cost in get_next_positions(maze_map, pos, heading):
+            distance_to_neighbor = distance[(pos, heading)] + cost
+            alternative_dist = distance.get((next_pos, next_heading), math.inf)
 
-            if ((next_pos, heading) not in expanded and
-                    (distance_to_neighbor, (next_pos, heading)) not in frontier):
-                heapq.heappush(frontier, (distance_to_neighbor, (next_pos, heading)))
+            if distance_to_neighbor <= alternative_dist:
+                distance[(next_pos, next_heading)] = distance_to_neighbor
+                previous[(next_pos, next_heading)] = ([(pos, heading)] if distance_to_neighbor < alternative_dist else
+                                                      previous[(next_pos, next_heading)] + [(pos, heading)])
 
-    raise Exception
+                heapq.heappush(frontier, (distance_to_neighbor, (next_pos, next_heading)))
+
+    print(distance[end_pos, 3])
+    return previous
+
+
+def print_path(path: set[tuple[int]], maze_map: list[str]):
+    height, width = len(maze_map), len(maze_map[0])
+    for y in range(height):
+        print(''.join('O' if (x, y) in path
+                      else maze_map[y][x] for x in range(width)))
 
 
 def main():
@@ -62,8 +100,10 @@ def main():
         maze_map = maze_map_file.read().splitlines()
 
     start_pos, end_pos = get_position(maze_map, 'S'), get_position(maze_map, 'E')
-    score = get_lowest_score(maze_map, start_pos, end_pos)
-    print(score)
+    path = get_best_path(maze_map, start_pos, end_pos)
+    tiles = visit_rec((end_pos, 3), path)
+    # print_path(tiles, maze_map)
+    print(len(tiles))
 
 
 if __name__ == '__main__':
