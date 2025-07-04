@@ -85,9 +85,8 @@ class Computer:
 
 def next_extension(register_value: str, idx: int) -> tuple[str, int]:
     digit = int(register_value[idx])
-    threshold = 1 if idx == 0 else 0
 
-    if digit > threshold:
+    if digit > 0:
         return (register_value[:idx] + str(digit-1) + register_value[idx+1:], idx)
 
     if idx == 15:
