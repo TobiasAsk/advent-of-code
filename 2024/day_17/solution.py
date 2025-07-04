@@ -63,7 +63,6 @@ class Computer:
             print(','.join(str(o) for o in self.output))
 
     def search(self, register_value: str, idx: int = 0):
-        # print(f'Trying {register_value}')
         base_ten_value = int(register_value, 8)
         self.register_values = {
             'A': base_ten_value,
@@ -72,7 +71,7 @@ class Computer:
         }
         self.run_program(print_output=False)
         if self.output == self.program:
-            return base_ten_value
+            print(base_ten_value)
 
         comp_idx = 15 - idx
         if self.output[comp_idx:] != self.program[comp_idx:]:
@@ -80,9 +79,7 @@ class Computer:
 
         extension = first_extension(register_value, idx)
         while extension != None:
-            val = self.search(*extension)
-            if val:
-                return val
+            self.search(*extension)
             extension = next_extension(*extension)
 
 
@@ -115,16 +112,9 @@ def main():
         register_info, program_instructions = program_info_file.read().split('\n\n')
 
     program_instructions = [int(n) for n in DIGIT_PATTERN.findall(program_instructions)]
-
     register_values = {'B': 0, 'C': 0}
-    # value = int(sys.argv[2], 8)
-    # register_values['A'] = value
     computer = Computer(register_values, program_instructions)
-    # computer.run_program(True)
-    # print(f'Output length: {len(computer.output)}')
-
-    val = computer.search('7777777777777777')
-    print(val)
+    computer.search('7777777777777777')
 
 
 if __name__ == '__main__':
