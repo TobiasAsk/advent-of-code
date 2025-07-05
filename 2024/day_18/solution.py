@@ -54,6 +54,8 @@ class MemorySpace:
 
                 heapq.heappush(frontier, (distance_to_neighbor, next_pos))
 
+        return -1
+
 
 def main():
     filename = sys.argv[1]
@@ -61,10 +63,12 @@ def main():
         byte_positions = [tuple(int(c) for c in line.split(','))
                           for line in byte_position_file]
 
-    byte_positions = byte_positions[:1024]
-    memory_space = MemorySpace(byte_positions)
-    num_steps = memory_space.length_of_shortest_path_to_exit()
-    print(num_steps)
+    for num_bytes in range(2800, len(byte_positions)):
+        memory_space = MemorySpace(byte_positions[:num_bytes])
+        num_steps = memory_space.length_of_shortest_path_to_exit()
+        if num_steps == -1:
+            print(byte_positions[num_bytes-1])
+            break
 
 
 if __name__ == '__main__':
