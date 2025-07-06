@@ -3,16 +3,16 @@ from functools import cache
 
 
 @cache
-def can_make_design(design: str, towel_patterns: set[str]) -> bool:
+def num_ways_to_make(design: str, towel_patterns: set[str]) -> int:
     if not design:
-        return True
+        return 1
 
+    num_ways = 0
     for pattern in towel_patterns:
-        if (design.startswith(pattern) and
-                can_make_design(design[len(pattern):], towel_patterns)):
-            return True
+        if design.startswith(pattern):
+            num_ways += num_ways_to_make(design[len(pattern):], towel_patterns)
 
-    return False
+    return num_ways
 
 
 def main():
@@ -22,11 +22,10 @@ def main():
         towel_patterns = frozenset(p.strip() for p in towel_patterns_raw.split(','))
         designs = designs_raw.splitlines()
 
-    num_possible_designs = 0
+    all_options = 0
     for design in designs:
-        if can_make_design(design, towel_patterns):
-            num_possible_designs += 1
-    print(num_possible_designs)
+        all_options += num_ways_to_make(design, towel_patterns)
+    print(all_options)
 
 
 if __name__ == '__main__':
