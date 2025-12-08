@@ -1,3 +1,5 @@
+'''Does not require search! Greedy approach from left to right works fine since order matters.'''
+
 import sys
 
 
@@ -11,9 +13,14 @@ def get_max_and_idx(digits: list[int]) -> tuple[int, int]:
 
 
 def find_largest_joltage(bank: list[int]) -> int:
-    max_first_digit, max_first_digit_idx = get_max_and_idx(bank[:-1])
-    max_second_digit, _ = get_max_and_idx(bank[max_first_digit_idx+1:])
-    return int(str(max_first_digit)+str(max_second_digit))
+    digits = ''
+    offset = 0
+    for i in range(11, -1, -1):
+        bank_in_range = bank[offset:-i] if i > 0 else bank[offset:]
+        max_digit_in_range, max_digit_idx = get_max_and_idx(bank_in_range)
+        digits += str(max_digit_in_range)
+        offset += max_digit_idx+1
+    return int(digits)
 
 
 def main():
