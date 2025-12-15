@@ -1,3 +1,7 @@
+'''Parse column by column without splitting since whitespace is significant. Compute a problem when a column of
+spaces is encountered, and once at the end for the final column.
+'''
+
 import sys
 from functools import reduce
 from operator import add, mul
@@ -6,19 +10,32 @@ from operator import add, mul
 def main():
     filename = sys.argv[1]
     with open(filename) as worksheet_file:
-        worksheet_raw = worksheet_file.read().splitlines()
+        worksheet = worksheet_file.read().splitlines()
 
-    num_problems = len(worksheet_raw[0].split())
-    worksheet_operands = [[] for _ in range(num_problems)]
-    for line in worksheet_raw[:-1]:
-        for i, op in enumerate(int(o) for o in line.split()):
-            worksheet_operands[i].append(op)
-    
-    worksheet_operators = worksheet_raw[-1].split()
+    problem_operands = []
+    num_rows = len(worksheet)
+    operator = None
     total = 0
-    for i, operands in enumerate(worksheet_operands):
-        operator = add if worksheet_operators[i] == '+' else mul
-        total += reduce(operator, operands)
+    for col in range(len(worksheet[0])):
+        col_has_digit = False
+        operand = ''
+        for row in range(num_rows):
+            entry = worksheet[row][col]
+            if entry.isdigit():
+                col_has_digit = True
+                operand += entry
+            elif entry in ['*', '+']:
+                operator = entry
+
+        if col_has_digit:
+            problem_operands.append(int(operand))
+        else:
+            op = add if operator == '+' else mul
+            total += reduce(op, problem_operands)
+            problem_operands = []
+
+    op = add if operator == '+' else mul
+    total += reduce(op, problem_operands)
 
     print(total)
 
